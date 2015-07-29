@@ -12,12 +12,16 @@ function cvtx_add_meta_boxes() {
     // Reader
     add_meta_box('cvtx_reader_meta', __('Metadata', 'cvtx'),
                  'cvtx_reader_meta', 'cvtx_reader', 'side', 'high');
+    add_meta_box('cvtx_reader_event', __('Event', 'cvtx'),
+                 'cvtx_meta_event', 'cvtx_reader', 'normal', 'high');
     add_meta_box('cvtx_reader_contents', __('Contents', 'cvtx'),
                  'cvtx_reader_contents', 'cvtx_reader', 'normal', 'high');
     add_meta_box('cvtx_reader_pdf', __('PDF', 'cvtx'),
                  'cvtx_metabox_pdf', 'cvtx_reader', 'side', 'low');
     
     // Agenda points
+    add_meta_box('cvtx_top_event', __('Event', 'cvtx'),
+                 'cvtx_meta_event', 'cvtx_top', 'side', 'high');
     add_meta_box('cvtx_top_meta', __('Metadata', 'cvtx'),
                  'cvtx_top_meta', 'cvtx_top', 'side', 'high');
     
@@ -67,6 +71,10 @@ function cvtx_add_meta_boxes() {
                  'cvtx_application_form_photo', 'cvtx_application', 'normal', 'high');
     add_meta_box('cvtx_application_form_cv', __('Life career', 'cvtx'),
                  'cvtx_application_form_cv', 'cvtx_application', 'normal', 'high');
+
+    // Events
+    add_meta_box('cvtx_event_meta', __('Metadata', 'cvtx'),
+                 'cvtx_event_meta', 'cvtx_event', 'side', 'high');
 }
 
 
@@ -91,12 +99,24 @@ function cvtx_reader_meta() {
     */
 }
 
+function cvtx_meta_event() {
+    global $post;
+    // select event
+    $event_id = get_post_meta($post->ID, $post->post_type.'_event', false);
+    echo('<label for="'.$post->post_type.'_event_select">'.__('Select an event', 'cvtx').':</label> ');
+    echo(cvtx_dropdown_events($event_id, $post->post_type, __('No events available.', 'cvtx')));
+    echo('<br />');
+}
 
 // Inhalt
-function cvtx_reader_contents() {
+function cvtx_reader_contents($post, $args, $event_id = null) {
     global $post;
     $reader_id = $post->ID;
     $post_bak = $post;
+
+    if($event_id == null) {
+        $event_id = get_post_meta($post->ID, 'cvtx_reader_event', true);
+    }
     
     // get objects in reader term
     $items = array();
@@ -116,19 +136,32 @@ function cvtx_reader_contents() {
 
     // list all contents
     $output = '<div class="cvtx_reader_toc" id="cvtx_reader_toc">';
-    $query  = new WP_Query(array('post_type' => array('cvtx_top',
-                                                      'cvtx_antrag',
-                                                      'cvtx_aeantrag',
-                                                      'cvtx_application'),
-                                 'orderby'   => 'meta_value',
-                                 'meta_key'  => 'cvtx_sort',
-                                 'order'     => 'ASC',
-                                 'nopaging'  => true));
-    if ($query->have_posts()) {
+
+    global $wpdb;
+    $ids = $wpdb->get_col($wpdb->prepare("
+    SELECT DISTINCT p.ID
+    FROM $wpdb->posts p
+    INNER JOIN $wpdb->postmeta p2 ON
+      (p.post_type = 'cvtx_antrag' and p2.meta_key = 'cvtx_antrag_event' and p2.post_id = p.ID)
+      OR
+      (p.post_type = 'cvtx_top' and p2.meta_key = 'cvtx_top_event' and p2.post_id = p.ID)
+      OR
+      (p.post_type = 'cvtx_application' and p2.meta_key = 'cvtx_application_event' and p2.post_id = p.ID)
+      OR
+      (p.post_type = 'cvtx_aeantrag' and p2.meta_key = 'cvtx_aeantrag_antrag' and p2.post_id = p.ID)
+    LEFT JOIN $wpdb->postmeta p3 ON
+      (p.post_type = 'cvtx_aeantrag' and p3.meta_key = 'cvtx_antrag_event' and p3.post_id = p2.meta_value)
+    LEFT JOIN $wpdb->postmeta cvtxsort
+      ON cvtxsort.post_id = p.ID
+      AND cvtxsort.meta_key = 'cvtx_sort'
+    WHERE (p2.meta_value IN (%d, '-1') OR p3.meta_value IN (%d, '-1'))
+    ORDER BY cvtxsort.meta_value ASC", $event_id, $event_id));
+    
+    if (!empty($ids)) {
         $open_top    = false;
         $open_antrag = false;
-        while ($query->have_posts()) {
-            $query->the_post();
+        foreach($ids as $post_id) {
+            $post = get_post($post_id);
             $title = get_the_title();
             if (empty($title)) $title = __('(no title)', 'cvtx');
             $checked = (in_array($post->ID, $items) ? 'checked="checked"' : '');
@@ -225,6 +258,22 @@ function cvtx_top_meta() {
     echo('<label for="cvtx_top_appendix">'.__('View as appendix', 'cvtx').'</label>');
 }
 
+/* Events */
+function cvtx_event_meta() {
+    global $post;
+    echo('<label for="cvtx_event_year">'.__('Year of event', 'cvtx').':</label><br />');
+    echo('<input name="cvtx_event_year" id="cvtx_event_year_field" type="number" maxlength="4" value="'.get_post_meta($post->ID, 'cvtx_event_year', true).'" />');
+    echo('<br />');
+    echo('<label for="cvtx_event_ord">'.__('Number of event', 'cvtx').':</label><br />');
+    echo('<input name="cvtx_event_ord" id="cvtx_event_ord_field" type="radio" value="I"'.(get_post_meta($post->ID, 'cvtx_event_ord', true) == 'I' ? ' checked="checked"' : '').'>I');
+    echo('<br />');
+    echo('<input name="cvtx_event_ord" id="cvtx_event_ord_field" type="radio" value="II"'.(get_post_meta($post->ID, 'cvtx_event_ord', true) == 'II' ? ' checked="checked"' : '').'>II');
+    echo('<br />');
+    echo('<input name="cvtx_event_ord" id="cvtx_event_ord_field" type="radio" value="III"'.(get_post_meta($post->ID, 'cvtx_event_ord', true) == 'III' ? ' checked="checked"' : '').'>III');
+    echo('<br />');
+    echo('<input name="cvtx_event_ord" id="cvtx_event_ord_field" type="radio" value="IV"'.(get_post_meta($post->ID, 'cvtx_event_ord', true) == 'IV' ? ' checked="checked"' : '').'>IV');
+    echo('<br />');
+}
 
 /* Anträge */
 
@@ -233,8 +282,13 @@ function cvtx_antrag_meta() {
     global $post;
     $top_id = get_post_meta($post->ID, 'cvtx_antrag_top', true);    
     
+    // select event
+    $event_id = get_post_meta($post->ID, 'cvtx_antrag_event', false);
+    echo('<label for="cvtx_antrag_event_select">'.__('Event', 'cvtx').':</label><br />');
+    echo(cvtx_dropdown_events($event_id, $post->post_type, __('No events available.', 'cvtx'), true));
+    echo('<br />');
     echo('<label for="cvtx_antrag_top_select">'.__('Agenda point', 'cvtx').':</label><br />');
-    echo(cvtx_dropdown_tops($top_id, __('No agenda points enabled to resolutions.', 'cvtx'), true, ''));
+    echo(cvtx_dropdown_tops($top_id, __('No agenda points enabled to resolutions.', 'cvtx'), true, '', $event_id));
     echo('<br />');
     echo('<label for="cvtx_antrag_ord_field">'.__('Resolution number', 'cvtx').':</label><br />');
     echo('<input name="cvtx_antrag_ord" id="cvtx_antrag_ord_field" type="text" maxlength="5" value="'.get_post_meta($post->ID, 'cvtx_antrag_ord', true).'" />');
@@ -761,6 +815,135 @@ function cvtx_order_lists($vars) {
 }
 
 
+/**
+ * Add custom filter for events 
+ */
+add_action('restrict_manage_posts', 'cvtx_admin_posts_filter_events' );
+/**
+ * First create the dropdown
+ * make sure to change POST_TYPE to the name of your custom post type
+ * 
+ * @author Ohad Raz
+ * 
+ * @return void
+ */
+function cvtx_admin_posts_filter_events(){
+    $type = 'post';
+    if (isset($_GET['post_type'])) {
+        $type = $_GET['post_type'];
+    }
+    global $post;
+    $post_bak = $post;
+
+    //only add filter to post type you want
+    if ('cvtx_antrag' == $type || $type == 'cvtx_reader' || $type == 'cvtx_top' || $type == 'cvtx_aeantrag'){
+        //change this to the list of values you want to show
+        //in 'label' => 'value' format
+/*
+        $my_query = new WP_Query(array('post_type'  => 'cvtx_event',
+                                     'orderby'    => 'meta_value',
+                                     'meta_key'   => 'cvtx_sort',
+                                     'order'      => 'DESC',
+                                     'nopaging'   => true));
+*/
+        global $wpdb;
+        $ids = $wpdb->get_col("
+        SELECT DISTINCT p.ID
+        FROM $wpdb->posts p
+        INNER JOIN $wpdb->postmeta cvtxsort
+                  ON cvtxsort.post_id = p.ID
+                  AND cvtxsort.meta_key = 'cvtx_sort'
+        WHERE p.post_type = 'cvtx_event'
+        ORDER BY cvtxsort.meta_value DESC
+        ");
+        $values = array(0 => array("id" => "-1", "title" => __('Alle Veranstaltungen', 'cvtx')));
+        foreach($ids as $id) {
+          $post = get_post($id);
+          $values[]  = array("id" => $post->ID, "title" => cvtx_get_short($post));
+        }
+        $option = get_option('cvtx_options');
+        ?>
+        <select name="cvtx_filter_antraege_by_event">
+        <?php
+            $current_v = isset($_GET['cvtx_filter_antraege_by_event'])? $_GET['cvtx_filter_antraege_by_event']:(isset($option['cvtx_antrag_predefined_event']) ? $option['cvtx_antrag_predefined_event'] : '');
+            foreach ($values as $label => $value) {
+                printf(
+                        '<option value="%s"%s>%s</option>',
+                        $value["id"],
+                        $value["id"] == $current_v? ' selected="selected"':'',
+                        $value["title"]
+                    );
+                }
+        ?>
+        </select>
+        <?php
+    }
+
+    wp_reset_postdata();
+    $post = $post_bak;
+}
+
+add_filter( 'parse_query', 'cvtx_posts_filter' );
+/**
+ * if submitted filter by post meta
+ * 
+ * make sure to change META_KEY to the actual meta key
+ * and POST_TYPE to the name of your custom post type
+ * @author Ohad Raz
+ * @param  (wp_query object) $query
+ * 
+ * @return Void
+ */
+function cvtx_posts_filter( $query ){
+    global $pagenow;
+    $options = get_option('cvtx_options');
+    $type = 'post';
+    if (isset($_GET['post_type'])) {
+        $type = $_GET['post_type'];
+    }
+    if (!(isset($_GET['cvtx_filter_antraege_by_event']) && $_GET['cvtx_filter_antraege_by_event'] == '-1') 
+        && is_admin() 
+        && $pagenow=='edit.php'
+        && ((($type == 'cvtx_antrag' || $type == 'cvtx_top' || $type == 'cvtx_reader' || $type == 'cvtx_aeantrag') 
+            && isset($options['cvtx_antrag_predefined_event']) 
+            && !empty($options['cvtx_antrag_predefined_event']))
+          || (('cvtx_antrag' == $type || $type == 'cvtx_top' || $type == 'cvtx_reader' || $type == 'cvtx_aeantrag')
+            && isset($_GET['cvtx_filter_antraege_by_event']) 
+            && $_GET['cvtx_filter_antraege_by_event'] != ''))) {
+        $events = array();
+        if (isset($_GET['cvtx_filter_antraege_by_event']) && $_GET['cvtx_filter_antraege_by_event'] != '') {
+          $events = array($_GET['cvtx_filter_antraege_by_event']);
+        } else if (isset($options['cvtx_antrag_predefined_event'])) {
+          $events = array($options['cvtx_antrag_predefined_event']);
+        }
+        if($type == 'cvtx_top') {
+          $events[] = '-1';
+        }
+        if($type == 'cvtx_aeantrag') {
+          global $wpdb;
+          $antrag_ids = $wpdb->get_results($wpdb->prepare(
+            "SELECT p.ID
+             FROM $wpdb->posts AS p
+             LEFT JOIN $wpdb->postmeta as pm ON p.ID = pm.post_id
+             WHERE p.post_type = 'cvtx_antrag'
+              AND pm.meta_key = 'cvtx_antrag_event'
+              AND pm.meta_value IN (%s)"
+          ,implode(',',$events)));
+          $a_ids = array();
+          foreach($antrag_ids as $a_id) {
+            $a_ids[] = $a_id->ID;
+          }
+          $query->query_vars['meta_query'][] = array('key' => $type.'_antrag',
+                                                   'value' => $a_ids,
+                                                   'compare' => 'IN');
+        } else {
+          $query->query_vars['meta_query'][] = array('key' => $type.'_event',
+                                                   'value' => $events,
+                                                   'compare' => 'IN');
+        }
+    }
+}
+
 if (is_admin()) add_action('admin_notices', 'cvtx_admin_notices');
 /**
  * Checks if the plugins HTML-Purified and WP-reCAPTCHA are installed
@@ -900,7 +1083,8 @@ function cvtx_posts_search($search) {
         $conds   = array($parts[1], $parts[3]);
         $conds[] = "{$wpdb->posts}.ID IN (SELECT {$wpdb->postmeta}.post_id FROM {$wpdb->postmeta} WHERE {$wpdb->postmeta}.meta_value LIKE '%".$parts[2]."%')";
         
-        $antrag   = str_replace(array(__('%agenda_point%', 'cvtx'), __('%resolution%', 'cvtx')), '([\w]+)', preg_quote($options['cvtx_antrag_format'], '/'));
+        $event    = str_replace(array(__('%event_year%', 'cvtx'), __('%event_nr%', 'cvtx')), '([\w]+)', preg_quote($options['cvtx_event_format'], '/'));
+        $antrag   = str_replace(array(__('%agenda_point%', 'cvtx'), __('%event%', 'cvtx'), __('%resolution%', 'cvtx')), array('([\w]+)', $event, '([\w]+)'), preg_quote($options['cvtx_antrag_format'], '/'));
         $aeantrag = str_replace(array(__('%resolution%', 'cvtx'), __('%line%', 'cvtx')), array($antrag, '([\w]+)'), preg_quote($options['cvtx_aeantrag_format'], '/'));
         if (preg_match('/'.$aeantrag.'/i', $parts[2], $match)) {
             $conds[] = "(SELECT {$wpdb->postmeta}.meta_value\n"
@@ -930,6 +1114,38 @@ function cvtx_posts_search($search) {
                       ."  LIMIT 1)";
         }
         
+        if (preg_match('/'.$event.'/i', $parts[2], $match)) {
+            $conds[] = "(SELECT meta_value\n"
+                      ."   FROM {$wpdb->postmeta}\n"
+                      ."  WHERE {$wpdb->postmeta}.post_id  = {$wpdb->posts}.ID\n"
+                      ."    AND {$wpdb->postmeta}.meta_key = 'cvtx_antrag_event'\n"
+                      ."  LIMIT 1) =\n"
+                      ."(SELECT pm1.post_id\n"
+                      ."   FROM {$wpdb->postmeta} AS pm1\n"
+                  ." INNER JOIN {$wpdb->postmeta} AS pm2\n"
+                     ."      ON pm1.post_id = pm2.post_id"
+                      ."  WHERE pm1.meta_key  = 'cvtx_event_ord'\n"
+                      ."    AND pm1.meta_value = '".$match[1]."'\n"
+                      ."    AND pm2.meta_key = 'cvtx_event_year'\n"
+                      ."    AND pm2.meta_value = '".$match[2]."'\n"
+                      ."  LIMIT 1)\n"
+                      ."    AND {$wpdb->posts}.post_type = 'cvtx_antrag'\n";
+        }
+        if (preg_match('/'.str_replace('Antrag ', '', $antrag).'/i', $parts[4], $match)) {
+            $conds[] = "{$wpdb->posts}.ID = (SELECT pm.post_id\n"
+                      ."   FROM {$wpdb->postmeta} AS pm\n"
+                  ." INNER JOIN {$wpdb->postmeta} AS pm2 ON pm2.post_id = pm.post_id\n"
+                  ." INNER JOIN {$wpdb->postmeta} AS pm3 ON pm3.post_id = pm2.meta_value\n"
+                  ." INNER JOIN {$wpdb->postmeta} As pm4 ON pm4.post_id = pm2.meta_value\n"
+                      ."  WHERE pm.meta_key = 'cvtx_antrag_ord'\n"
+                      ."    AND pm.meta_value LIKE '%".$match[1]."%'\n"
+                      ."    AND pm2.meta_key ='cvtx_antrag_event'\n"
+                      ."    AND pm3.meta_key = 'cvtx_event_year'\n"
+                      ."    AND pm3.meta_value = '".$match[3]."'\n"
+                      ."    AND pm4.meta_key = 'cvtx_event_ord'\n"
+                      ."    AND pm4.meta_value = '".$match[2]."'\n"
+                      ."  LIMIT 1)";
+        }
         if (preg_match('/'.$antrag.'/i', $parts[2], $match)) {
             $conds[] = "(SELECT meta_value\n"
                       ."   FROM {$wpdb->postmeta}\n"
@@ -1048,6 +1264,7 @@ function cvtx_admin_init(){
     // regsiter main settings
     add_settings_field('cvtx_antrag_format', __('Token for resolutions and applications', 'cvtx'), 'cvtx_antrag_format', 'cvtx_config', 'cvtx_main');
     add_settings_field('cvtx_aeantrag_format', __('Token for amendments', 'cvtx'), 'cvtx_aeantrag_format', 'cvtx_config', 'cvtx_main');
+    add_settings_field('cvtx_event_format', __('Token for events', 'cvtx'), 'cvtx_event_format', 'cvtx_config', 'cvtx_main');
     add_settings_field('cvtx_aeantrag_pdf', __('Generate PDF', 'cvtx'), 'cvtx_aeantrag_pdf', 'cvtx_config', 'cvtx_main');
     add_settings_field('cvtx_anon_user', __('Anonymous user', 'cvtx'), 'cvtx_anon_user', 'cvtx_config', 'cvtx_main');
     add_settings_field('cvtx_default_reader_antrag', __('Assign submitted resolutions to the following readers', 'cvtx'), 'cvtx_default_reader_antrag', 'cvtx_config', 'cvtx_main');
@@ -1055,6 +1272,7 @@ function cvtx_admin_init(){
     add_settings_field('cvtx_default_reader_application', __('Assign submitted applications to the following readers', 'cvtx'), 'cvtx_default_reader_application', 'cvtx_config', 'cvtx_main');
     add_settings_field('cvtx_privacy_message', __('Privacy message to be shown below e-mail and phone form fields', 'cvtx'), 'cvtx_privacy_message', 'cvtx_config', 'cvtx_main');
     add_settings_field('cvtx_phone_required', __('Phone number','cvtx'), 'cvtx_phone_required', 'cvtx_config', 'cvtx_main');
+    add_settings_field('cvtx_antrag_predefined_event', __('Veranstaltung voreinstellen'), 'cvtx_antrag_predefined_event', 'cvtx_config', 'cvtx_main');
     // register notification settings
     add_settings_field('cvtx_send_html_mail', __('HTML mail', 'cvtx'), 'cvtx_send_html_mail', 'cvtx_config', 'cvtx_notifications');
     add_settings_field('cvtx_send_from_email', __('Sender address', 'cvtx'), 'cvtx_send_from_email', 'cvtx_config', 'cvtx_notifications');
@@ -1093,6 +1311,7 @@ function cvtx_create_options() {
         // general options
         'cvtx_antrag_format' => __('%agenda_point%', 'cvtx').'-'.__('%resolution%', 'cvtx'),
         'cvtx_aeantrag_format' => __('%resolution%', 'cvtx').'-'.__('%line%', 'cvtx'),
+        'cvtx_event_format' => '%event_nr%/%event_year%',
         'cvtx_aeantrag_pdf' => 0,
         'cvtx_anon_user' => 1,
         'cvtx_default_reader_antrag' => array(),
@@ -1264,16 +1483,58 @@ function cvtx_restore_options() {
     cvtx_create_options();
 }
 
+function cvtx_antrag_predefined_event() {
+    $options = get_option('cvtx_options');
+    global $wpdb;
+    $ids = $wpdb->get_col("
+    SELECT DISTINCT p.ID
+    FROM $wpdb->posts p
+    INNER JOIN $wpdb->postmeta cvtxsort
+              ON cvtxsort.post_id = p.ID
+              AND cvtxsort.meta_key = 'cvtx_sort'
+    WHERE p.post_type = 'cvtx_event'
+    ORDER BY cvtxsort.meta_value DESC
+    ");
+    $values = array();
+    foreach($ids as $id) {
+      $post = get_post($id);
+      $values[]  = array("id" => $post->ID, "title" => cvtx_get_short($post));
+    }
+    ?>
+    <select name="cvtx_options[cvtx_antrag_predefined_event]" id="cvtx_antrag_predefined_event">
+    <option value=""><?php _e('Nicht festlegen', 'cvtx'); ?></option>
+    <?php
+        $current_v = isset($options['cvtx_antrag_predefined_event'])? $options['cvtx_antrag_predefined_event']:'';
+        foreach ($values as $label => $value) {
+            printf(
+                    '<option value="%s"%s>%s</option>',
+                    $value["id"],
+                    $value["id"] == $current_v? ' selected="selected"':'',
+                    $value["title"]
+                );
+            }
+    ?>
+    </select>
+    <span class="description">(Die hier voreingestellte Veranstaltung wird überall im Admin-Bereich ausgewählt und Beiträge danach gefiltert.)</span>
+<?php    
+}
+
 function cvtx_antrag_format() {
     $options = get_option('cvtx_options');
     echo "<input id='cvtx_antrag_format' name='cvtx_options[cvtx_antrag_format]' size='40' type='text' value='{$options['cvtx_antrag_format']}' /> ";
-    echo ('<span class="description">('.__('%agenda_point%', 'cvtx').', '.__('%resolution%', 'cvtx').')</span>');
+    echo ('<span class="description">('.__('%agenda_point%', 'cvtx').', '.__('%resolution%', 'cvtx').', '.__('%event%', 'cvtx').')</span>');
 }
 
 function cvtx_aeantrag_format() {
     $options = get_option('cvtx_options');
     echo "<input id='cvtx_aeantrag_format' name='cvtx_options[cvtx_aeantrag_format]' size='40' type='text' value='{$options['cvtx_aeantrag_format']}' /> ";
-    echo('<span class="description">('.__('%resolution%', 'cvtx').', '.__('%line%', 'cvtx').')</span>');
+    echo('<span class="description">('.__('%resolution%', 'cvtx').', '.__('%line%', 'cvtx').', '.__('%page%', 'cvtx').', '.__('%aeantrag%', 'cvtx').')</span>');
+}
+
+function cvtx_event_format() {
+    $options = get_option('cvtx_options');
+    echo "<input id='cvtx_event_format' name='cvtx_options[cvtx_event_format]' size='40' type='text' value='{$options['cvtx_event_format']}' /> ";
+    echo('<span class="description">('.__('%event_year%', 'cvtx').', '.__('%event_nr%', 'cvtx').')</span>');
 }
 
 function cvtx_aeantrag_pdf() {
@@ -1666,6 +1927,14 @@ function cvtx_admin_bar_render() {
         'id'     => 'cvtx_reader',
         'title'  => __('Readers', 'cvtx'),
         'href'   => home_url('/wp-admin/edit.php?post_type=cvtx_reader'),
+        'meta'   => array('class' => 'cvtx')
+    ));
+    // link to cvtx_event
+    $wp_admin_bar->add_menu(array(
+        'parent' => 'cvtx',
+        'id'     => 'cvtx_event',
+        'title'  => __('Events', 'cvtx'),
+        'href'   => home_url('/wp-admin/edit.php?post_type=cvtx_event'),
         'meta'   => array('class' => 'cvtx')
     ));
     // link to cvtx-config-page

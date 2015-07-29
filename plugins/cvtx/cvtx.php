@@ -36,13 +36,15 @@ register_activation_hook(__FILE__, 'cvtx_create_options' );
 load_plugin_textdomain('cvtx', false, dirname(CVTX_PLUGIN_FILE).'/languages');
 
 // define post types
-$cvtx_types = array('cvtx_reader'   => array('cvtx_reader_style'),
+$cvtx_types = array('cvtx_reader'   => array('cvtx_reader_style',
+                                             'cvtx_reader_event'),
                     'cvtx_top'      => array('cvtx_top_ord',
                                              'cvtx_sort',
                                              'cvtx_top_short',
                                              'cvtx_top_antraege',
                                              'cvtx_top_applications',
-                                             'cvtx_top_appendix'),
+                                             'cvtx_top_appendix',
+                                             'cvtx_top_event'),
                     'cvtx_antrag'   => array('cvtx_antrag_ord',
                                              'cvtx_sort',
                                              'cvtx_antrag_top',
@@ -80,6 +82,9 @@ $cvtx_types = array('cvtx_reader'   => array('cvtx_reader_style'),
                                              'cvtx_application_bv',
                                              'cvtx_application_website',
                                              'cvtx_application_cv'));
+                       'cvtx_event' => array('cvtx_event_year',
+                                             'cvtx_event_ord',
+                                             'cvtx_sort'));
 
 // Used MIME types
 $cvtx_mime_types = array('pdf' => 'application/pdf',
@@ -212,7 +217,27 @@ function cvtx_init() {
         )
     );
     
-    
+    register_post_type('cvtx_event',
+        array('labels'             => array(
+              'name'               => __('Events', 'cvtx'),
+              'singular_name'      => __('Event', 'cvtx'),
+              'add_new_item'       => __('Create event', 'cvtx'),
+              'new_item'           => __('New event', 'cvtx'),
+              'edit_item'          => __('Edit event', 'cvtx'),
+              'view_item'          => __('View event', 'cvtx'),
+              'menu_name'          => __('Events', 'cvtx'),
+              'search_items'       => __('Search event', 'cvtx'),
+              'not_found'          => __('No events found', 'cvtx'),
+              'not_found_in_trash' => __('No events found in trash', 'cvtx')),
+        'public'      => true,
+        '_builtin'    => false,
+        'has_archive' => false,
+        //'menu_icon'   => CVTX_PLUGIN_URL.'images/cvtx_reader_small.png',
+        'rewrite'     => array('slug' => 'veranstaltungen'),
+        'supports'    => array('title', 'editor'),
+        )
+    );
+
     // Register reader taxonomy to Anträgen
     register_taxonomy('cvtx_tax_reader', 'cvtx_antrag',
                       array('hierarchical' => true,
@@ -252,9 +277,12 @@ function cvtx_init() {
 /**
  * Returns a globally sortable string
  */
-function cvtx_get_sort($post_type, $top=false, $subject=false, $zeile=false, $vari=false) {
+function cvtx_get_sort($post_type, $top=false, $subject=false, $zeile=false, $vari=false, $year=false, $event=false) {
     $sorts            = array();
+    if($event && intval($event) == 0) $event = roman_to_arabic($event);
     $sorts['top']     = ($top     !== false ? (intval($top)     ? sprintf('%1$05d', intval(floatval($top)*100)) : 'ZZZZZ' ) : 'AAAAA' );
+    $sorts['year']    = ($year    !== false ? (intval($year)    ? sprintf('%1$05d', intval($year))              : 'ZZZZZ' ) : 'AAAAA' );
+    $sorts['event']   = ($event   !== false ? (intval($event)   ? sprintf('%1$05d', intval($event))             : 'ZZZZZ' ) : 'AAAAA' );
     $sorts['subject'] = ($subject !== false ? (intval($subject) ? sprintf('%1$05d', intval($subject))           : 'ZZZZZ' ) : 'AAAAA' );
     $sorts['zeile']   = ($zeile   !== false ? (intval($zeile)   ? sprintf('%1$06d', intval($zeile))             : 'ZZZZZZ') : 'AAAAAA');
     $sorts['vari']    = ($vari    !== false ? (intval($vari)    ? sprintf('%1$06d', intval($vari))              : 'ZZZZZZ') : 'AAAAAA');
@@ -274,6 +302,33 @@ function cvtx_get_sort($post_type, $top=false, $subject=false, $zeile=false, $va
     return implode($sorts);
 }
 
+function roman_to_arabic($roman) {
+    $romans = array(
+        'M' => 1000,
+        'CM' => 900,
+        'D' => 500,
+        'CD' => 400,
+        'C' => 100,
+        'XC' => 90,
+        'L' => 50,
+        'XL' => 40,
+        'X' => 10,
+        'IX' => 9,
+        'V' => 5,
+        'IV' => 4,
+        'I' => 1,
+    );
+    
+    $result = 0;
+    
+    foreach ($romans as $key => $value) {
+        while (strpos($roman, $key) === 0) {
+            $result += $value;
+            $roman = substr($roman, strlen($key));
+        }
+    }
+    return $result;
+}
 
 add_action('wp_insert_post', 'cvtx_insert_post', 10, 2);
 /**
@@ -307,14 +362,25 @@ function cvtx_insert_post($post_id, $post = null) {
                 $_POST['cvtx_top_appendix'] = (is_string($cvtx_top_appendix) && !empty($cvtx_top_appendix) ? $cvtx_top_appendix : 'off');
             }
         }
+        // update / insert event
+        if($post->post_type == 'cvtx_event') {
+            // get globally sortable string
+            $sort = 0;
+            $sort += (isset($_POST['cvtx_event_year']) ? 10 * intval($_POST['cvtx_event_year']) : 0);
+            $sort += (isset($_POST['cvtx_event_ord']) ? roman_to_arabic($_POST['cvtx_event_ord']) : 0);
+            $_POST['cvtx_sort'] = $sort;
+        }
         // Update/insert antrag
         else if ($post->post_type == 'cvtx_antrag' && isset($_POST['cvtx_antrag_top'])) {
             // get top and validate data
             $top_ord    = get_post_meta($_POST['cvtx_antrag_top'], 'cvtx_top_ord', true);
             $antrag_ord = (isset($_POST['cvtx_antrag_ord']) ? $_POST['cvtx_antrag_ord'] : 0);
+            $event_id   = (isset($_POST['cvtx_antrag_event']) && is_array($_POST['cvtx_antrag_event']) ? $_POST['cvtx_antrag_event'][0] : (isset($_POST['cvtx_antrag_event']) ? $_POST['cvtx_antrag_event'] : 0)); 
+            $event_year = get_post_meta($event_id, 'cvtx_event_year', true);
+            $event_nr   = get_post_meta($event_id, 'cvtx_event_ord', true);
 
             // get globally sortable string
-            $_POST['cvtx_sort'] = cvtx_get_sort('cvtx_antrag', $top_ord, $antrag_ord);
+            $_POST['cvtx_sort'] = cvtx_get_sort('cvtx_antrag', $top_ord, $antrag_ord, false, false, $event_year, $event_nr);
             
             // generate short antragsteller if field is empty
             if (!isset($_POST['cvtx_antrag_steller_short']) || empty($_POST['cvtx_antrag_steller_short'])) {
@@ -332,6 +398,10 @@ function cvtx_insert_post($post_id, $post = null) {
             $top_id     = get_post_meta($_POST['cvtx_aeantrag_antrag'], 'cvtx_antrag_top', true);
             $top_ord    = get_post_meta($top_id, 'cvtx_top_ord', true);
             $antrag_ord = get_post_meta($_POST['cvtx_aeantrag_antrag'], 'cvtx_antrag_ord', true);
+            $event_id   = get_post_meta($_POST['cvtx_aeantrag_antrag'], 'cvtx_antrag_event', false);
+            $event_id   = (is_array($event_id) ? array_pop($event_id) : $event_id);
+            $event_year = get_post_meta($event_id, 'cvtx_event_year', true);
+            $event_nr   = get_post_meta($event_id, 'cvtx_event_ord', true);
             
             // fetch main info on line (first few numbers)
             if (preg_match('/^([0-9]+)/', $_POST['cvtx_aeantrag_zeile'], $match1)) {
@@ -344,7 +414,7 @@ function cvtx_insert_post($post_id, $post = null) {
             } else $aeantrag_vari = false;
             
             // get globally sortable string
-            $_POST['cvtx_sort'] = cvtx_get_sort('cvtx_aeantrag', $top_ord, $antrag_ord, $aeantrag_zeile, $aeantrag_vari);
+            $_POST['cvtx_sort'] = cvtx_get_sort('cvtx_aeantrag', $top_ord, $antrag_ord, $aeantrag_zeile, $aeantrag_vari, $event_year, $event_nr);
             
             // generate short antragsteller if field is empty
             if (!isset($_POST['cvtx_aeantrag_steller_short']) || empty($_POST['cvtx_aeantrag_steller_short'])) {
@@ -709,7 +779,7 @@ function cvtx_insert_post($post_id, $post = null) {
  * @param int $post_id Post-ID
  * @param object $post the post
  */
-function cvtx_create_pdf($post_id, $post = null) {
+function cvtx_create_pdf($post_id, $post = null, $event_id = false) {
     global $cvtx_mime_types;
     $options = get_option('cvtx_options');
 
@@ -860,7 +930,7 @@ function cvtx_create_pdf($post_id, $post = null) {
 }
 
 
-add_filter('the_title', 'cvtx_the_title', 1, 2);
+add_filter('the_title', 'cvtx_the_title', 10, 2);
 /**
  * replaces filter "the title" in order to generate custom titles for post-types "top", "antrag" and "aeantrag"
  */
@@ -885,6 +955,9 @@ function cvtx_the_title($before='', $after='') {
             }
             // Änderungsantrag
             else if($post->post_type == 'cvtx_aeantrag') {
+                $title = $short;
+            }
+            else if($post->post_type == 'cvtx_event') {
                 $title = $short;
             }
             // Agenda point
@@ -977,9 +1050,20 @@ function cvtx_get_short($post) {
         $top    = get_post_meta(get_post_meta($post->ID, 'cvtx_antrag_top', true), 'cvtx_top_short', true);
         $antrag = get_post_meta($post->ID, 'cvtx_antrag_ord', true);
 
+        // fetch event short
+        $event_id = get_post_meta($post->ID, 'cvtx_antrag_event', false);
+        if(is_array($event_id)) {
+          $event_id = array_pop($event_id);
+        }
+        $event_year = get_post_meta($event_id, 'cvtx_event_year', true);
+        $event_nr = get_post_meta($event_id, 'cvtx_event_ord', true);
+        
+        $event = strtr($options['cvtx_event_format'], array(__('%event_year%', 'cvtx') => $event_year,
+                                                            __('%event_nr%', 'cvtx') => $event_nr));
         // format
         $format = strtr($options['cvtx_antrag_format'], array(__('%agenda_point%', 'cvtx') => $top,
-                                                                __('%resolution%', 'cvtx')   => $antrag));
+                                                              __('%event%', 'cvtx') => $event,
+                                                              __('%resolution%', 'cvtx')   => $antrag));
 
         if (!empty($top) && !empty($antrag)) return $format;
     }
@@ -1001,14 +1085,37 @@ function cvtx_get_short($post) {
         $antrag_nr = get_post_meta($antrag_id, 'cvtx_antrag_ord', true);
         $top_nr    = get_post_meta(get_post_meta($antrag_id, 'cvtx_antrag_top', true), 'cvtx_top_short', true);
         $zeile     = get_post_meta($post->ID, 'cvtx_aeantrag_zeile', true);
+
+        // fetch event short
+        $event_id = get_post_meta($antrag_id, 'cvtx_antrag_event', false);
+        if(is_array($event_id)) {
+          $event_id = array_pop($event_id);
+        }
+        $event_year = get_post_meta($event_id, 'cvtx_event_year', true);
+        $event_nr = get_post_meta($event_id, 'cvtx_event_ord', true);
+
+        $event = strtr($options['cvtx_event_format'], array(__('%event_year%', 'cvtx') => $event_year,
+                                                            __('%event_nr%', 'cvtx') => $event_nr));        
         
         // format and return aeantrag_short
         $antrag = strtr($options['cvtx_antrag_format'], array(__('%agenda_point%', 'cvtx') => $top_nr,
-                                                                __('%resolution%', 'cvtx')   => $antrag_nr));
+                                                              __('%event%', 'cvtx') => $event,
+                                                              __('%resolution%', 'cvtx') => $antrag_nr));
+
         $format = strtr($options['cvtx_aeantrag_format'], array(__('%resolution%', 'cvtx') => $antrag,
                                                                   __('%line%', 'cvtx')       => $zeile));
         
         if (!empty($top_nr) && !empty($antrag_nr) && !empty($zeile)) return $format;
+    }
+    // post type event
+    else if ($post->post_type == 'cvtx_event') {
+        $event_year = get_post_meta($post->ID, 'cvtx_event_year', true);
+        $event_nr = get_post_meta($post->ID, 'cvtx_event_ord', true);
+        
+        // format and return event_short
+        $format = strtr($options['cvtx_event_format'], array(__('%event_year%', 'cvtx') => $event_year,
+                                                             __('%event_nr%', 'cvtx') => $event_nr));
+        if (!empty($event_year) && !empty($event_nr)) return $format;
     }
 
     // default
@@ -1136,6 +1243,65 @@ function cvtx_ajax_validate() {
     exit();
 }
 
+add_action('wp_ajax_cvtx_validate_antrag_ord', 'cvtx_validate_antrag_ord');
+/**
+ * 
+ */
+function cvtx_validate_antrag_ord() {
+    global $cvtx_types;
+
+    if (isset($_REQUEST['post_type']) && in_array($_REQUEST['post_type'], array_keys($cvtx_types))
+     && isset($_REQUEST['post_id'])
+     && isset($_REQUEST['antrag_ord'])
+     && isset($_REQUEST['event_id'])) {
+        global $wpdb;
+        $rows = $wpdb->get_results($wpdb->prepare("
+          SELECT DISTINCT p.* FROM $wpdb->posts p
+          INNER JOIN $wpdb->postmeta AS pm 
+            ON (p.ID = pm.post_id)
+          WHERE pm.meta_key = 'cvtx_antrag_ord' 
+            AND p.post_type = %s
+            AND p.ID != %d
+            AND pm.meta_value = %s
+            AND %d =
+              (SELECT pm3.meta_value FROM $wpdb->postmeta AS pm3
+               INNER JOIN wp_postmeta AS pm4 ON (pm4.post_id = pm3.meta_value AND pm4.meta_key = 'cvtx_sort')
+               WHERE p.ID = pm3.post_id
+                 AND pm3.meta_key = 'cvtx_antrag_event'
+            ORDER BY pm4.meta_value ASC
+               LIMIT 1)", 
+          $_REQUEST['post_type'], $_REQUEST['post_id'], $_REQUEST['antrag_ord'], $_REQUEST['event_id']));
+        if (count($rows) > 0) {
+            echo "-ERR";
+        } else {
+            echo "+OK";
+        }
+    }
+    exit();
+}
+
+add_action('wp_ajax_cvtx_top_for_event', 'cvtx_top_for_event');
+/**
+ * Retrieves all tops that are assigned to an event
+ */
+function cvtx_top_for_event() {
+  if(isset($_REQUEST['event_id']) && isset($_REQUEST['post_type'])) {
+    $out = cvtx_dropdown_tops($selected = $_REQUEST['current_top'], $message = 'ERR', ($_REQUEST['post_type'] == 'cvtx_antrag'), ($_REQUEST['post_type'] == 'cvtx_application'), $event_id = $_REQUEST['event_id']);
+    echo $out;
+  }
+  exit();
+}
+
+add_action('wp_ajax_cvtx_reader_from_event', 'cvtx_reader_from_event');
+/**
+ * Retrieves all tops that are assigned to an event
+ */
+function cvtx_reader_from_event() {
+  if(isset($_REQUEST['event_id'])) {
+    cvtx_reader_contents(null, null, $_REQUEST['event_id']);
+  }
+  exit();
+}
 
 /**
  * Returns an array of taxonomy terms that are connected to a reader item
@@ -1169,7 +1335,7 @@ function cvtx_get_reader() {
  * @param $selected post_id of selected top, otherwise null
  * @param $message message that will be displayed if no top exists
  */
-function cvtx_dropdown_tops($selected = null, $message = '', $antraege = true, $applications = '') {
+function cvtx_dropdown_tops($selected = null, $message = '', $antraege = true, $applications = '', $event_id = false) {
     global $post;
     $post_bak = $post;
     $output = '';
@@ -1185,6 +1351,12 @@ function cvtx_dropdown_tops($selected = null, $message = '', $antraege = true, $
                                'value'   => ($applications ? 'on' : 'off'),
                                'compare' => '=');
     }
+    if (isset($event_id) && intval($event_id) > 0) {
+        $test_ids = array_merge(array(-1),(array) $event_id);
+        $query_conds[] = array('key'     => 'cvtx_top_event',
+                               'value'   => $test_ids,
+                               'compare' => 'IN');
+    }
 
     $tquery = new WP_Query(array('post_type'  => 'cvtx_top',
                                  'orderby'    => 'meta_value',
@@ -1197,7 +1369,52 @@ function cvtx_dropdown_tops($selected = null, $message = '', $antraege = true, $
             .($applications ? 'application' : 'antrag').'_top_select">';
         while ($tquery->have_posts()) {
             $tquery->the_post();
-            $output .= '<option value="'.get_the_ID().'"'.(get_the_ID() == $selected ? ' selected="selected"' : '').'>';
+            $output .= '<option value="'.get_the_ID().'"'.(in_array(get_the_ID(),(array)$selected) ? ' selected="selected"' : '').'>';
+            $output .= get_the_title();
+            $output .= '</option>';
+        }
+        $output .= '</select>';
+    }
+    // return info message if no top exists
+    else {
+        return $message;
+    }
+    
+    // reset data
+    wp_reset_postdata();
+    $post = $post_bak;
+    return $output;
+}
+
+/**
+ * Print dropdown menu of all events
+ *
+ * @param $selected post_id of selected event, otherwise null
+ * @param $message message that will be displayed if no event exists
+ */
+function cvtx_dropdown_events($selected = null, $type = 'cvtx_antrag', $message = '', $multiple = false) {
+    global $post;
+    $post_bak = $post;
+    $output = '';
+    $selected = (array) $selected;
+    
+    $query_conds = array();
+
+    $tquery = new WP_Query(array('post_type'  => 'cvtx_event',
+                                 'orderby'    => 'meta_value',
+                                 'meta_key'   => 'cvtx_sort',
+                                 'order'      => 'DESC',
+                                 'nopaging'   => true));
+    if ($tquery->have_posts()) {
+        $output .= '<select name="'.$type.'_event'.($multiple ? '[]' : '').'" id="'.$type.'_event_select"'.($multiple ? ' multiple' : '').'>';
+        if($type == "cvtx_top") {
+            $output .= '<option value="-1"'.(in_array('-1', $selected) || empty($selected) ? ' selected="selected"' : '').'>';
+            $output .= 'Alle Veranstaltungen';
+            $output .= '</option>';
+        }
+        while ($tquery->have_posts()) {
+            $tquery->the_post();
+            $output .= '<option value="'.get_the_ID().'"'.(in_array(get_the_ID(), $selected) ? ' selected="selected"' : '').'>';
             $output .= get_the_title();
             $output .= '</option>';
         }
@@ -1222,37 +1439,39 @@ function cvtx_dropdown_tops($selected = null, $message = '', $antraege = true, $
  * @param $message message that will be displayed if no top exists
  */
 function cvtx_dropdown_antraege($selected = null, $message = '') {
-    global $post;
-    $post_bak = $post;
     $output = '';
 
     // Tagesordnungspunkte auflisten
-    $tquery = new WP_Query(array('post_type' => 'cvtx_top',
-                                 'orderby'   => 'meta_value',
-                                 'meta_key'  => 'cvtx_sort',
-                                 'order'     => 'ASC',
-                                 'nopaging'  => true));
-    if ($tquery->have_posts()) {
+    global $wpdb;
+    $tids = $wpdb->get_col("
+      SELECT DISTINCT p.ID
+      FROM $wpdb->posts p
+      LEFT JOIN $wpdb->postmeta cvtxsort ON
+        (cvtxsort.post_id = p.ID and cvtxsort.meta_key = 'cvtx_sort')
+      WHERE p.post_type = 'cvtx_top'
+      ORDER BY cvtxsort.meta_value
+    ");
+    if (!empty($tids)) {
         $output .= '<select name="cvtx_aeantrag_antrag" id="cvtx_aeantrag_antrag_select">';
-        while ($tquery->have_posts()) {
-            $tquery->the_post();
+        foreach($tids as $tid) {
             // optgroup for top
-            $output .= '<optgroup label="'.get_the_title().'">';
+            $output .= '<optgroup label="'.get_the_title($tid).'">';
             
             // list anträge in top
-            $aquery = new WP_Query(array('post_type'  => 'cvtx_antrag',
-                                         'orderby'    => 'meta_value',
-                                         'meta_key'   => 'cvtx_sort',
-                                         'order'      => 'ASC',
-                                         'nopaging'   => true,
-                                         'meta_query' => array(array('key'     => 'cvtx_antrag_top',
-                                                                     'value'   => get_the_ID(),
-                                                                     'compare' => '='))));
-            if ($aquery->have_posts()) {
-                while ($aquery->have_posts()) {
-                    $aquery->the_post();
-                    $output .= '<option value="'.get_the_ID().'"'.(get_the_ID() == $selected ? ' selected="selected"' : '').'>';
-                    $output .= get_the_title();
+            $aids = $wpdb->get_col($wpdb->prepare("
+              SELECT DISTINCT p.ID
+              FROM $wpdb->posts p
+              INNER JOIN $wpdb->postmeta p2 ON
+                (p2.post_id = p.ID and p2.meta_key = 'cvtx_antrag_top')
+              LEFT JOIN $wpdb->postmeta cvtxsort ON
+                (cvtxsort.post_id = p.ID and cvtxsort.meta_key = 'cvtx_sort')
+              WHERE p2.meta_value = %d
+              ORDER BY cvtxsort.meta_value
+            ", $tid));
+            if (!empty($aids)) {
+                foreach($aids as $aid) {
+                    $output .= '<option value="'.$aid.'"'.($aid == $selected ? ' selected="selected"' : '').'>';
+                    $output .= get_the_title($aid);
                     $output .= '</option>';
                 }
             }
@@ -1266,9 +1485,6 @@ function cvtx_dropdown_antraege($selected = null, $message = '') {
         return $message;
     }
     
-    // reset data
-    wp_reset_postdata();
-    $post = $post_bak;
     return $output;
 }
 

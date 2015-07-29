@@ -80,6 +80,171 @@ class ReaderWidget extends WP_Widget {
 
 } // class ReaderWidget
 
+
+// register ReaderEventWidget
+add_action('widgets_init', create_function('', 'register_widget("ReaderEventWidget");'));
+/**
+ * Reader-Widget
+ */
+class ReaderEventWidget extends WP_Widget {
+    /** constructor */
+    function __construct() {
+        parent::WP_Widget('ReaderEventWidget', __('Reader event list', 'cvtx'), array('description' => __('Show list of published readers for current event.', 'cvtx')));
+    }
+    
+    /** @see WP_Widget::widget */
+    function widget($args, $instance) {
+        global $post;
+        if(is_object($post) && property_exists($post, 'post_type') && $post->post_type == 'cvtx_event') {
+          $event_id = $post->ID;
+          $post_bak = $post;
+          $loop = new WP_Query(array('post_type' => 'cvtx_reader',
+                                     'order'     => 'ASC',
+                                     'post_status' => 'publish',
+                                     'meta_query' => array(
+                                       array(
+                                         'key' => 'cvtx_reader_event',
+                                         'value' => $event_id,
+                                         'compare' => '=',
+                                       )
+                                     ),
+                                     'nopaging'  => true));
+          if ($loop->have_posts()) {
+              extract($args);
+              $title = apply_filters('widget_title', $instance['title']);
+              echo($before_widget);
+              if ($title) {
+                  echo $before_title.$title.$after_title;
+              }
+              if (isset($instance['description'])) {
+                  echo($instance['description'].'<p/>');
+              }
+              echo('<ul>');
+              while ($loop->have_posts()) {
+                  $loop->the_post();
+                  if ($file = cvtx_get_file($post, 'pdf')) {
+                      echo(the_title('<li><a href="'.$file.'" title="'.__('View PDF', 'cvtx').'" class="extern">', '</a></li>'));
+                  }
+              }
+              echo('</ul>');
+              echo($after_widget);
+          }
+          wp_reset_postdata();
+          $post = $post_bak;
+        }
+    }
+    
+    /** @see WP_Widget::update */
+    function update($new_instance, $old_instance) {
+        $instance                = $old_instance;
+        $instance['title']       = strip_tags($new_instance['title']);
+        $instance['description'] = strip_tags($new_instance['description'],'<a><em><strong>');
+        return $instance;
+    }
+    
+    /** @see WP_Widget::form */
+    function form($instance) {
+        if ($instance) {
+            $title = esc_attr($instance['title']);
+            if (isset($instance['description'])) {
+                $description = esc_attr($instance['description']);
+            } else {
+                $description = '';
+            }
+        } else {
+            $title       = __('Reader', 'cvtx');
+            $description = __('Description', 'cvtx');
+        }
+        
+        echo('<p>');
+        echo(' <label for="'.$this->get_field_id('title').'">'.__('Title', 'cvtx').':</label> ');
+        echo(' <input class="widefat" id="'.$this->get_field_id('title').'" name="'.$this->get_field_name('title').'" type="text" value="'.$title.'" />');
+        echo('</p>');
+        echo('<p>');
+        echo(' <label for="'.$this->get_field_id('description').'">'.__('Description', 'cvtx').':</label>');
+        echo(' <textarea class="widefat" id="'.$this->get_field_id('description').'" name="'.$this->get_field_name('description').'">'.$description.'</textarea>');
+        echo('</p>');
+    }
+
+} // class ReaderEventWidget
+
+// register EventWidget
+add_action('widgets_init', create_function('', 'register_widget("EventWidget");'));
+/**
+ * Event-Widget
+ */
+class EventWidget extends WP_Widget {
+    /** constructor */
+    function __construct() {
+        parent::WP_Widget('EventWidget', __('Event list', 'cvtx'), array('description' => __('Show list of published events (except the current one).', 'cvtx')));
+    }
+    
+    /** @see WP_Widget::widget */
+    function widget($args, $instance) {
+        global $post;
+        $post_bak = $post;
+        $loop = new WP_Query(array('post_type' => 'cvtx_event',
+                                   'meta_key'  => 'cvtx_sort',
+                                   'orderby'   => 'meta_value',
+                                   'post_status' => 'published',
+                                   'order'     => 'DESC',
+                                   'nopaging'  => true));
+        if ($loop->have_posts()) {
+            extract($args);
+            $title = apply_filters('widget_title', $instance['title']);
+            echo($before_widget);
+            if ($title) {
+                echo $before_title.$title.$after_title;
+            }
+            if (isset($instance['description'])) {
+                echo($instance['description'].'<p/>');
+            }
+            echo('<ul>');
+            while ($loop->have_posts()) {
+                $loop->the_post();
+                echo('<li><a href="'.get_the_permalink().'">'.$post->post_title.'</a></li>');
+            }
+            echo('</ul>');
+            echo($after_widget);
+        }
+        wp_reset_postdata();
+        $post = $post_bak;
+    }
+    
+    /** @see WP_Widget::update */
+    function update($new_instance, $old_instance) {
+        $instance                = $old_instance;
+        $instance['title']       = strip_tags($new_instance['title']);
+        $instance['description'] = strip_tags($new_instance['description'],'<a><em><strong>');
+        return $instance;
+    }
+    
+    /** @see WP_Widget::form */
+    function form($instance) {
+        if ($instance) {
+            $title = esc_attr($instance['title']);
+            if (isset($instance['description'])) {
+                $description = esc_attr($instance['description']);
+            } else {
+                $description = '';
+            }
+        } else {
+            $title       = __('Reader', 'cvtx');
+            $description = __('Description', 'cvtx');
+        }
+        
+        echo('<p>');
+        echo(' <label for="'.$this->get_field_id('title').'">'.__('Title', 'cvtx').':</label> ');
+        echo(' <input class="widefat" id="'.$this->get_field_id('title').'" name="'.$this->get_field_name('title').'" type="text" value="'.$title.'" />');
+        echo('</p>');
+        echo('<p>');
+        echo(' <label for="'.$this->get_field_id('description').'">'.__('Description', 'cvtx').':</label>');
+        echo(' <textarea class="widefat" id="'.$this->get_field_id('description').'" name="'.$this->get_field_name('description').'">'.$description.'</textarea>');
+        echo('</p>');
+    }
+
+} // class EventWidget
+
 // register CountWidget
 add_action('widgets_init', create_function('', 'register_widget("CountWidget");'));
 

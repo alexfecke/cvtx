@@ -102,7 +102,16 @@ function cvtx_name($strip_nl = false) {
     echo(cvtx_get_latex(get_bloginfo('name'), $strip_nl));
 }
 
-function cvtx_beschreibung($strip_nl = false) {
+function cvtx_beschreibung($strip_nl = false, $event_id = false) {
+    global $post;
+    if(isset($post) && is_object($post) && !$event_id) {
+        $event_id = get_post_meta($post->ID, $post->post_type.'_event');
+    }
+    if($event_id) {
+        $event = get_post((is_array($event_id) ? array_pop($event_id) : $event_id));
+        echo(cvtx_get_latex($event->post_title));
+        return;
+    }
     echo(cvtx_get_latex(get_bloginfo('description'), $strip_nl));
 }
 
