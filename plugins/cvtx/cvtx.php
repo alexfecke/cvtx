@@ -81,7 +81,7 @@ $cvtx_types = array('cvtx_reader'   => array('cvtx_reader_style',
                                              'cvtx_application_kv',
                                              'cvtx_application_bv',
                                              'cvtx_application_website',
-                                             'cvtx_application_cv'));
+                                             'cvtx_application_cv'),
                        'cvtx_event' => array('cvtx_event_year',
                                              'cvtx_event_ord',
                                              'cvtx_sort'));

@@ -139,12 +139,14 @@ jQuery(document).ready(function($){
         
         // value specified? check for unique
         if (meta_key[0] == "cvtx_antrag_ord" && meta_key.length == 1) {
+            var event_id = $("#cvtx_antrag_event_select option:selected:last").val();
+            event_id = (event_id == null ? '-1' : event_id);
             query = {"action"    : "cvtx_validate_antrag_ord",
                      "cookie"    : encodeURIComponent(document.cookie),
                      "post_type" : $("#post_type").val(),
                      "post_id"   : $("#post_ID").val(),
                      "top_id"    : $("#cvtx_antrag_top_select").val(),
-                     "event_id"  : $("#cvtx_antrag_event_select option:selected:last").val(),
+                     "event_id"  : event_id,
                      "antrag_ord": meta_value[0]
                     };
             // fetch info
