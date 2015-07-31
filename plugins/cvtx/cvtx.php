@@ -350,7 +350,7 @@ function cvtx_insert_post($post_id, $post = null) {
     global $cvtx_allowed_image_types;
     $options = get_option('cvtx_options');
 
-    if (in_array($post->post_type, array_keys($cvtx_types))) {
+    if (in_array($post->post_type, array_keys($cvtx_types)) && !($post != null && $post->pinged == '12345')) {
         $terms = array();
     
         // Update/insert top

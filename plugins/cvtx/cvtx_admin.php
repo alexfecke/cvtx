@@ -79,6 +79,34 @@ function cvtx_add_meta_boxes() {
                  'cvtx_event_meta', 'cvtx_event', 'side', 'high');
 }
 
+/**
+  * Add Export Buttons
+  */
+add_action('admin_footer-edit.php', 'admin_edit_cvtx_foot', 11);
+
+/* load scripts in the footer */
+function admin_edit_cvtx_foot() {
+    $slug = 'book';
+    # load only when editing an amendment or a resolution
+    if (   (isset($_GET['page']) && ($_GET['page'] == 'cvtx_antrag' || $_GET['page'] == 'cvtx_aeantrag'))
+        || (isset($_GET['post_type']) && ($_GET['post_type'] == 'cvtx_antrag' || $_GET['post_type'] == 'cvtx_aeantrag')))
+    {
+        echo '<script type="text/javascript" src="', plugins_url('admin_edit.js', __FILE__), '"></script>';
+    }
+  global $post_type;
+  if($post_type == 'cvtx_antrag' || $post_type == 'cvtx_application' || $post_type == 'cvtx_aeantrag' || $post_type == 'cvtx_top' || $post_type == 'cvtx_event') {
+    ?>
+    <script type="text/javascript">
+      jQuery(document).ready(function() {
+        jQuery('<option>').val('export').text('<?php _e('Export (JSON)')?>').appendTo("select[name='action']");
+        jQuery('<option>').val('export').text('<?php _e('Export (JSON)')?>').appendTo("select[name='action2']");
+        jQuery('<option>').val('export_csv').text('<?php _e('Export (CSV)')?>').appendTo("select[name='action']");
+        jQuery('<option>').val('export_csv').text('<?php _e('Export (CSV)')?>').appendTo("select[name='action2']");
+      });
+    </script>
+    <?php
+  }
+}
 
 /* Reader */
 
@@ -358,7 +386,6 @@ function cvtx_antrag_info() {
     global $post;
     echo('<textarea style="width: 100%" name="cvtx_antrag_info">'.get_post_meta($post->ID, 'cvtx_antrag_info', true).'</textarea>');
 }
-
 
 /* Änderungsanträge */
 
@@ -1279,6 +1306,7 @@ function cvtx_posts_search($search) {
 add_action('admin_menu', 'cvtx_admin_page');
 function cvtx_admin_page() {
     add_options_page('cvtx Page', __('cvtx Agenda Plugin','cvtx'), 'manage_options', 'cvtx_config', 'cvtx_options_page');
+    add_options_page('Importiere Daten', __('cvtx Import','cvtx'), 'manage_options', 'cvtx_import', 'cvtx_import_posts');
 }
 
 function cvtx_config_main_text() {
@@ -1319,6 +1347,168 @@ function cvtx_config_amendment_submitted_text() {
                                               __('%authors_short%', 'cvtx'),
                                               __('%text%', 'cvtx'),
                                               __('%explanation%', 'cvtx')).'</span>');
+}
+
+function cvtx_import($post, $mappings) {
+    global $cvtx_types;
+    if($post->post_type == 'cvtx_antrag' || $post->post_type == 'cvtx_top' || $post->post_type == 'cvtx_event') {
+        $existing = get_page_by_title($post->post_title, 'OBJECT', $post->post_type);
+    } else if($post->post_type == 'cvtx_aeantrag') {
+        $args = array(
+            'post_type' => 'cvtx_aeantrag',
+            'meta_query' => array(
+                array(
+                    'key' => 'cvtx_aeantrag_ord',
+                    'value' => $post->cvtx_aeantrag_ord,
+                    'compare' => '=',
+                ),
+                array(
+                    'key' => 'cvtx_aeantrag_antrag',
+                    'value' => $mappings[$post->cvtx_aeantrag_antrag],
+                    'compare' => '=',
+                )
+            )
+        );
+        $query = new WP_Query($args);
+        if($query->have_posts()) {
+            $existing = $query->the_post();
+        } else {
+            $existing = null;
+        }
+    }
+    $result = array();
+    if($existing != null) {
+        if($post->post_type == 'cvtx_event' || $post->post_type == 'cvtx_top') {
+            $result = array("status" => "success", "expl" => "mapping", "title" => $post->post_title);
+            $result['map'] = array($post->ID => $existing->ID);
+        } else {
+            $result = array("status" => "error", "expl" => "exists", "title" => $post->post_title);
+        }
+        return $result;
+    } else {
+        $author_id = 1;
+        $post_id = -1;
+        $k = $post->post_type.'_top';
+        if($post->post_type == 'cvtx_antrag' && property_exists($post, $k) && !in_array($post->{$k}, array_keys($mappings))) {
+            $result = array("status" => "error", "expl" => "mapping");
+            return $result;
+        }
+        $k = $post->post_type.'_event';
+        if(($post->post_type == 'cvtx_antrag' || $post->post_type == 'cvtx_top') && property_exists($post, $k) && $post->{$k} != '-1' && !in_array($post->{$k}, array_keys($mappings))) {
+            $result = array("status" => "error", "expl" => "mapping");
+            return $result;
+        }
+        $k = $post->post_type.'_antrag';
+        if($post->post_type == 'cvtx_aeantrag' && property_exists($post, $k) && !in_array($post->{$k}, array_keys($mappings))) {
+            $result = array("status" => "error", "expl" => "mapping");
+            return $result;
+        }
+        $post_id = wp_insert_post(
+            array(
+                'comment_status' => $post->comment_status,
+                'ping_status' => $post->ping_status,
+                'post_author' => $author_id,
+                'post_name' => trim($post->post_name),
+                'post_title' => wp_strip_all_tags(trim($post->post_title)),
+                'post_status' => $post->post_status,
+                'post_type' => trim($post->post_type),
+                'post_date' => $post->date,
+                'post_content' => $post->content,
+                'post_password' => $post->post_password,
+                'pinged' => 12345,
+                'tax_input' => array(
+                    'cvtx_tax_assign_to' => $post->assign_to,
+                )
+            )
+        );
+        if($post_id == -1) {
+            $result = array("status" => "eror", "expl" => "import");      
+        } else {
+            foreach($cvtx_types[$post->post_type] as $key) {
+                add_post_meta($post_id, $key, $post->{$key});
+            }
+            if($post->post_type == 'cvtx_antrag') {
+                update_post_meta($post_id, 'cvtx_antrag_top', $mappings[$post->cvtx_antrag_top]);
+            }
+            if($post->post_type == 'cvtx_antrag' || $post->post_type == 'cvtx_top') {
+                $k = $post->post_type.'_event';
+                update_post_meta($post_id, $k, ($post->$k == '-1' ? '-1' : $mappings[$post->{$k}]));
+            }
+            if($post->post_type == 'cvtx_aeantrag') {
+                $k = $post->post_type.'_antrag';
+                update_post_meta($post_id, $k, $mappings[$post->{$k}]);
+            }
+            // this is dirty, but: it makes only sense to render PDFs, when all custom fields are filled in.
+            // To do so, we set 'pinged' to a specific number as flag for 'do not generate pdf' and update the post
+            // after custom fields are set.
+            $my_post = array(
+                'ID' => $post_id,
+                'pinged' => 0,
+            );
+            wp_update_post($my_post);
+            $result = array("status" => "success", "expl" => "import", "post_id" => $post_id, "title" => $post->post_title);
+            $result['map'] = array($post->ID => $post_id);
+        }
+    }
+    return $result;
+}
+
+function cvtx_import_posts() {
+    if(!empty($_FILES) && isset($_FILES['cvtx_import_data'])) {
+        $json = json_decode(file_get_contents($_FILES['cvtx_import_data']['tmp_name'], true));
+        $id_mappings = array();
+        $types = array('cvtx_event', 'cvtx_top', 'cvtx_antrag', 'cvtx_aeantrag');
+        $results = array();
+        foreach($types as $type) {
+            if(property_exists($json, $type)) {
+                foreach($json->{$type} as $post) {
+                    $result = cvtx_import($post,$id_mappings);
+                    if(array_key_exists("map", $result)) {
+                        $id_mappings += $result["map"];
+                    }
+                    if($result["status"] == "error") {
+                        if($result["expl"] == "exists") {
+                            $results[] = array('type' => 'error', 'text' => $post->post_type.' "'.$result["title"].'" wurde nicht importiert, da bereits ein gleichnamiger Inhalt vorhanden ist.');              
+                        }
+                        else if($result["expl"] == "mapping") {
+                            $results[] = array('type' => 'error', 'text' => $post->post_type.' "'.$post->post_title.'" wurde nicht importiert, da eine Referenz fehlt.');              
+                        }
+                        else if($result["expl"] == "import") {
+                            $results[] = array('type' => 'error', 'text' => $post->post_type.' "'.$post->post_title.'" wurde nicht importiert, Wordpress Import-Fehler.');              
+                        }
+                    } else if($result["status"] == "success") {
+                        if($result["expl"] == "mapping") {
+                            $results[] = array('type' => 'success', 'text' => 'Die Referenz von '.$post->post_type.' "'.$result["title"].'" wurde durch einen bestehenden gleichnamigen '.$post->post_type.' ersetzt.');
+                        } else if($result["expl"] == "import") {
+                            $results[] = array('type' => 'success', 'text' => $post->post_type.' <a href="'.get_permalink($result["post_id"]).'">'.$result["title"].'</a> wurde importiert.');
+                        }
+                    }
+                }
+            }
+        }
+        echo('<h2>'.__('cvtx – Daten Import','cvtx').'</h2>');
+        echo('<div id="cvtx-import-results"><ul>');
+        foreach($results as $result) {
+            print '<li class="cvtx-import-'.$result['type'].'">';
+            print $result['text'];
+            print '</li>';
+        }
+        echo('</ul></div>');
+    } else {
+        echo('<div>');
+        echo('<h2>'.__('cvtx – Daten Import','cvtx').'</h2>');
+        echo('<form method="post" enctype="multipart/form-data">');
+        echo('<p>');
+        echo('<label for="cvtx_import_data">'.__('Export-Datei hochladen','cvtx').':</label> ');
+        echo('<input type="file" name="cvtx_import_data" id="cvtx_import_data" accept=".json" />');
+        echo('<span class="description">(nur .json)</span>');
+        echo('</p>');
+        echo('<p>');
+        echo('<input type="submit" value="Abschicken" />');
+        echo('</p>');
+        echo('</div>');
+        echo('</form>');
+    }
 }
 
 function cvtx_options_page() {
@@ -1929,6 +2119,137 @@ function cvtx_manage_media_buttons() {
     }
 }
 
+add_action('load-edit.php', 'export_bulk_action');
+
+function export_bulk_action() {
+  	global $typenow;
+    $post_type = $typenow;
+	
+    if($post_type == "cvtx_antrag" || $post_type == "cvtx_aeantrag" || $post_type == "cvtx_event" || $post_type == "cvtx_top") {
+        // 1. get the action
+        $wp_list_table = _get_list_table('WP_Posts_List_Table');
+        $action = $wp_list_table->current_action();
+  
+        // 2. security check
+        if(isset($_REQUEST['post'])) {
+            $post_ids = array_map('intval', $_REQUEST['post']);
+        }
+  	
+        if(empty($post_ids)) return;
+    	
+        $pagenum = $wp_list_table->get_pagenum();
+  
+        switch($action) {
+            // 3. Perform the action
+            case 'export_csv':
+            case 'export':
+                // store in array
+                $data = array();
+                $exported = array();
+                while(!empty($post_ids)) {
+                    $post_id = array_pop($post_ids);
+                    $exported[] = $post_id;
+          
+                    if($post_id != "-1") {
+                        $post = get_post($post_id);
+                        $post_data = cvtx_exportable_post($post);
+                        $data[$post->post_type][] = $post_data;
+                        if($post->post_type != 'cvtx_event' && $post->post_type != 'cvtx_aeantrag' && !in_array($post_data[$post->post_type.'_event'], $exported) && !in_array($post_data[$post->post_type.'_event'], $post_ids)) {
+                            $post_ids[] = $post_data[$post->post_type.'_event'];
+                        }
+                        if($post->post_type != 'cvtx_top' && $post->post_type != 'cvtx_event' && $post->post_type != 'cvtx_aeantrag' && !in_array($post_data[$post->post_type.'_top'],$exported) && !in_array($post_data[$post->post_type.'_top'],$post_ids)) {
+                            $post_ids[] = $post_data[$post->post_type.'_top'];
+                        }
+                        if($post->post_type == 'cvtx_aeantrag' && !in_array($post_data[$post->post_type.'_antrag'],$exported) && !in_array($post_data[$post->post_type.'_antrag'],$exported) && !in_array($post_data[$post->post_type.'_antrag'],$post_ids)) {
+                            $post_ids[] = $post_data[$post->post_type.'_antrag'];
+                        }
+                    }
+                }
+        
+                ob_start();
+                if($action == 'export') {
+                    $json_data = json_encode($data, JSON_PRETTY_PRINT);
+                }
+                else {
+                    $json_data = cvtx_encode_csv($data);
+                }
+    		
+                $filename = 'export_cvtx.'.($action == 'export' ? 'json' : 'csv');
+                header( 'Content-Description: File Transfer' );
+                header( 'Content-Disposition: attachment; filename=' . $filename );
+                header( 'Content-Type: text/plain; charset=' . get_option( 'blog_charset' ), true );
+    		
+                echo $json_data;
+                ob_end_flush();
+
+                break;
+            default: return;
+        }
+    
+        exit;
+    }
+}
+
+function cvtx_encode_csv($data) {
+    $out = '';
+    $lines = array();
+    $head = array('type' => 0);
+    $i = 0;
+    $j = 1;
+    foreach($data as $type => $posts) {
+        foreach($posts as $post) {
+            $lines[$i][$head['type']] = $type;
+            foreach($post as $k => $v) {
+                if(!in_array($k, array_keys($head))) {
+                    $head[$k] = $j++;
+                }
+                $lines[$i][$head[$k]] = $v;
+            }
+            $i++;
+        }
+    }
+    $head = array_flip($head);
+    for($i = 0; $i < count($head); $i++) {
+        $out .= $head[$i];
+        if($i < count($head)-1) {
+            $out .= ';';
+        }
+    }
+    $out .= "\r\n";
+    foreach($lines as $line) {
+        for($i = 0; $i < count($line); $i++) {
+            $out .= '"'.addcslashes(str_replace(array('"'), '""', $line[$i]),';').'"';
+            if($i < count($line)-1) {
+                $out .= ';';
+            }
+        }
+        $out .= "\r\n";
+    }
+    return $out;
+}
+
+function cvtx_exportable_post($post) {
+    global $cvtx_types;
+    $post_data = array(
+        'ID' => $post->ID,
+        'post_title' => $post->post_title,
+        'post_type' => $post->post_type,
+        'date' => $post->post_date,
+        'permalink' => get_post_permalink($post->ID),
+        'content' => $post->post_content,
+        'post_status' => $post->post_status,
+        'comment_status' => $post->comment_status,
+        'ping_status' => $post->ping_status,
+        'post_password' => $post->post_password,
+        'post_name' => $post->post_name,
+    );
+    $assign_to = wp_get_post_terms($post->ID, 'cvtx_tax_assign_to', array("fields" => "names"));
+    $post_data['assign_to'] = implode(',', $assign_to);
+    foreach($cvtx_types[$post->post_type] as $key) {
+        $post_data[$key] = get_post_meta($post->ID, $key, true);
+    }
+    return $post_data;
+}
 
 if (is_admin()) add_filter('add_menu_classes', 'cvtx_show_pending_number');
 /**
@@ -2037,4 +2358,39 @@ function cvtx_get_pending($type) {
     return $count->pending + $count->draft;
 }
 
+
+/**
+  * Hook into taxonomy columns in order to add an export button
+  * for Antraege that are assigned to something
+  */
+add_filter('manage_edit-cvtx_tax_assign_to_columns', 'cvtx_assign_to_column_headers');
+function cvtx_assign_to_column_headers($columns) {
+    unset($columns['description']);
+    $columns['export'] = 'Export';
+    return $columns;
+}
+
+add_filter('manage_cvtx_tax_assign_to_custom_column', 'cvtx_assign_to_custom_column_content', 10, 3);
+function cvtx_assign_to_custom_column_content($c, $column_name, $term_id) {
+    if($column_name == 'export') {
+        echo('<label for="cvtx_tax_event_select">'.__('Event', 'cvtx').':</label><br />');
+        echo(cvtx_dropdown_events(false, "", __('No events available.', 'cvtx')));
+        echo('<br/>');
+        echo('<input class="cvtx-tax-term-id" type="hidden" name="cvtx_tax_term_id" value="'.$term_id.'" />');
+        echo '<input class="export-cvtx" type="submit" name="export" value="Export" />';
+    }
+}
+
+/**
+  * Creates a PDF for all posts that are assigned to $term_id and which
+  * have event_id as their event
+  */
+add_action('wp_ajax_cvtx_create_pdf_from_assign', 'cvtx_create_pdf_from_assign');
+function cvtx_create_pdf_from_assign() {
+    $term_id = $_REQUEST['termID'];
+    $event_id = $_REQUEST['eventID'];
+    $term = get_term($term_id, 'cvtx_tax_assign_to');
+    cvtx_create_pdf($term_id, $term, $event_id);
+    exit();
+}
 ?>

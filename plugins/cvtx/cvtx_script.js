@@ -6,6 +6,21 @@ jQuery(document).ready(function($){
         showTarget('cvtx_tool');
     }
     
+    $(".export-cvtx").click(function() {
+        var eventID = $(this).parent().find("#_event_select").val();
+        var termID = $(this).parent().find(".cvtx-tax-term-id").val();
+        data = {'action'  : 'cvtx_create_pdf_from_assign',
+                'cookie'  : encodeURIComponent(document.cookie),
+                'eventID' : eventID, 
+                'termID'  : termID};
+        $(this).parent().append('<div class="loading-cvtx"></div>');
+        $.post(ajaxurl, data, function(response) {
+            $('.loading-cvtx').remove();
+            window.open(location.protocol+'//'+location.hostname+'/'+response);
+        });
+        return false;
+    });
+
     // hide preview button for post_type top and application
     if ($("#post_type").val() == "cvtx_top" || $("#post_type").val() == "cvtx_application") {
         $("#preview-action").remove();
