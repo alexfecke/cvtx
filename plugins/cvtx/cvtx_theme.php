@@ -41,6 +41,23 @@ function cvtx_antragsteller_action($args = array('post_id' => false, 'short' => 
     }
 }
 
+add_action('cvtx_theme_assign_to', 'cvtx_assign_to_action', 10, 1);
+function cvtx_assign_to_action($post_id = false) {
+  if(!(isset($post_id) || !$post_id)) global $post;
+  else $post = get_post($post_id);
+  
+  if(is_object($post)) {
+    $reps = wp_get_post_terms($post->ID, 'cvtx_tax_assign_to');
+    if(!empty($reps)) {
+      $recipients = '';
+      for($i = 0; $i < count($reps); $i++) {
+        $recipients .= $reps[$i]->name;
+        if($i != count($reps)-1) $recipients .= ', ';
+      }
+      echo('<h3>Überweisen an:</h3> <p><strong>'.$recipients.'</strong></p>');
+    }
+  }
+}
 
 add_action('cvtx_theme_grund', 'cvtx_grund_action', 10, 1);
 /**

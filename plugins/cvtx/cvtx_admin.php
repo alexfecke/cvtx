@@ -911,6 +911,57 @@ function cvtx_admin_posts_filter_events(){
     $post = $post_bak;
 }
 
+/**
+ * Add custom filter for taxonomy cvtx_assign_to 
+ */
+add_action('restrict_manage_posts', 'cvtx_admin_posts_filter_tax_assign' );
+function cvtx_admin_posts_filter_tax_assign(){
+    $type = 'post';
+    if (isset($_GET['post_type'])) {
+        $type = $_GET['post_type'];
+    }
+    global $post;
+    $post_bak = $post;
+
+    //only add filter to post type you want
+    if ('cvtx_antrag' == $type || 'cvtx_aeantrag' == $type) {
+        //change this to the list of values you want to show
+        //in 'label' => 'value' format
+        global $wpdb;
+        $tids = $wpdb->get_results("
+        SELECT t.term_id AS tid, tm.name AS name, tm.slug AS slug
+        FROM $wpdb->term_taxonomy t
+        INNER JOIN $wpdb->terms tm
+                  ON tm.term_id = t.term_id
+        WHERE t.taxonomy = 'cvtx_tax_assign_to'
+        ORDER BY name
+        ");
+        $values = array(array("slug" => false, "title" => '- Überwiesen an -'));
+        foreach($tids as $tid) {
+          $values[]  = array("title" => $tid->name, "slug" => $tid->slug);
+        }
+        $option = get_option('cvtx_options');
+        ?>
+        <select name="cvtx_tax_assign_to">
+        <?php
+            $current_v = (isset($_GET['cvtx_tax_assign_to'])? $_GET['cvtx_tax_assign_to'] : false);
+            foreach ($values as $label => $value) {
+                printf(
+                        '<option value="%s"%s>%s</option>',
+                        $value["slug"],
+                        $value["slug"] == $current_v? ' selected="selected"':'',
+                        $value["title"]
+                    );
+                }
+        ?>
+        </select>
+        <?php
+    }
+
+    wp_reset_postdata();
+    $post = $post_bak;
+}
+
 add_filter( 'parse_query', 'cvtx_posts_filter' );
 /**
  * if submitted filter by post meta

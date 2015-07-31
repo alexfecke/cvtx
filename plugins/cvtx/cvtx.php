@@ -264,6 +264,15 @@ function cvtx_init() {
                             'query_var'    => true,
                             'rewrite'      => false));
     
+    // Register taxonomy of "Überweisen an" to Anträge
+    register_taxonomy('cvtx_tax_assign_to', array('cvtx_antrag', 'cvtx_aeantrag'), 
+                      array('hierarchical' => false,
+                            'label'        => 'Überwiesen an',
+                            'show_ui'      => true,
+                            'show_admin_column' => true,
+                            'query_var'    => true,
+                            'rewrite'      => true));
+
     // Initialize HTML Purifier if plugin activated
     if (is_plugin_active('html-purified/html-purified.php')) {
         global $html_purifier, $cvtx_purifier, $cvtx_purifier_config;
@@ -845,7 +854,7 @@ function cvtx_create_pdf($post_id, $post = null, $event_id = false) {
         $tpl_dir = get_template_directory().'/'.$options['cvtx_latex_tpldir'];
     
         // prepare antrag
-        if ($post->post_type == 'cvtx_antrag') {
+        if (property_exists($post, 'post_type') && $post->post_type == 'cvtx_antrag') {
             // file
             if ($post->post_status == 'publish' && $short = cvtx_get_short($post)) {
                 $file = $out_dir.cvtx_sanitize_file_name($short.'_'.$post->post_title);
@@ -857,7 +866,7 @@ function cvtx_create_pdf($post_id, $post = null, $event_id = false) {
             $file_post_type = 'cvtx_antrag';
         }
         // prepare Ä-Antrag if pdf-option enabled
-        else if ($post->post_type == 'cvtx_aeantrag' && isset($options['cvtx_aeantrag_pdf'])) {
+        else if (property_exists($post, 'post_type') && $post->post_type == 'cvtx_aeantrag' && isset($options['cvtx_aeantrag_pdf'])) {
             // file
             if ($post->post_status == 'publish' && $short = cvtx_get_short($post)) {
                 $file = $out_dir.cvtx_sanitize_file_name($short);
@@ -869,7 +878,7 @@ function cvtx_create_pdf($post_id, $post = null, $event_id = false) {
             $file_post_type = 'cvtx_aeantrag';
         }
         // prepare application
-        else if ($post->post_type == 'cvtx_application') {
+        else if (property_exists($post, 'post_type') && $post->post_type == 'cvtx_application') {
             // file
             if ($post->post_status == 'publish' && $short = cvtx_get_short($post)) {
                 $file = $out_dir.cvtx_sanitize_file_name($short);
@@ -881,7 +890,7 @@ function cvtx_create_pdf($post_id, $post = null, $event_id = false) {
             $file_post_type = 'cvtx_application';
         }
         // prepare Reader
-        else if ($post->post_type == 'cvtx_reader') {
+        else if (property_exists($post, 'post_type') && $post->post_type == 'cvtx_reader') {
             // file
             if ($post->post_status == 'publish') {
                 $file = $out_dir.cvtx_sanitize_file_name($post->post_title);
@@ -896,11 +905,16 @@ function cvtx_create_pdf($post_id, $post = null, $event_id = false) {
             // set file post type
             $file_post_type = 'cvtx_reader_'.$style;
         }
+        // prepare for taxonomy
+        else if (property_exists($post, 'slug')) {
+            $file = $out_dir.cvtx_sanitize_file_name($post->name);
+            $file_post_type = 'cvtx_taxonomy';
+        }
         
         // get template
         if (isset($file_post_type) && !empty($file_post_type)) {
             // use special theme template for id=x if exists
-            if (is_file($tpl_dir.'/single-'.$file_post_type.'-'.$post->ID.'.php')) {
+            if (property_exists($post, 'post_type') && is_file($tpl_dir.'/single-'.$file_post_type.'-'.$post->ID.'.php')) {
                 $tpl = $tpl_dir.'/single-'.$file_post_type.'-'.$post->ID.'.php';
             }
             // use theme template
@@ -916,9 +930,11 @@ function cvtx_create_pdf($post_id, $post = null, $event_id = false) {
         // create pdf if template found
         if (isset($tpl) && !empty($tpl) && isset($file) && !empty($file)) {
             // drop old attachments if exists
-            foreach (array('pdf', 'log', 'tex') as $ending) {
-                if ($attachment = get_post_meta($post->ID, 'cvtx_'.$ending.'_id', true)) {
-                    wp_delete_attachment($attachment, true);
+            if(property_exists($post, 'ID')) {
+                foreach (array('pdf', 'log', 'tex') as $ending) {
+                    if ($attachment = get_post_meta($post->ID, 'cvtx_'.$ending.'_id', true)) {
+                        wp_delete_attachment($attachment, true);
+                    }
                 }
             }
             
@@ -939,11 +955,14 @@ function cvtx_create_pdf($post_id, $post = null, $event_id = false) {
                                 .' -output-format=pdf '
                                 .' -output-directory='.escapeshellcmd($out_dir)
                                 .' '.escapeshellcmd($file).'.tex';
+                putenv("PATH=" .$_ENV["PATH"]. ':/usr/bin/');
 
                 // run pdflatex
                 exec($cmd);
-                // if reader is generated: run it twice to build toc etc.
-                if ($post->post_type == 'cvtx_reader') {
+                
+                // if reader is generated: run it twice to build toc and pagewise linenumbers.
+                if (property_exists($post, 'slug') || $post->post_type == 'cvtx_reader' || $post->post_type == 'cvtx_antrag') {
+                    exec($cmd);
                     exec($cmd);
                     exec($cmd);
                 }
@@ -966,16 +985,25 @@ function cvtx_create_pdf($post_id, $post = null, $event_id = false) {
                     if (is_file($file.'.'.$ending)) unlink($file.'.'.$ending);
                 }
                 
-                // register files as attachments
-                foreach ($attach as $ending) {
-                    if (is_file($file.'.'.$ending) && !in_array($ending, $remove)) {
-                        $attachment = array('post_mime_type' => $cvtx_mime_types[$ending],
-                                            'post_title'     => $post->post_type.'_'.$post->ID,
-                                            'post_content'   => '',
-                                            'post_status'    => 'inherit',
-                                            'post_parent'    => $post->ID);
-                        $attach_id  = wp_insert_attachment($attachment, $file.'.'.$ending);
-                        update_post_meta($post->ID, 'cvtx_'.$ending.'_id', $attach_id);
+                if(property_exists($post, 'post_type')) {
+                    // register files as attachments
+                    foreach ($attach as $ending) {
+                        if (is_file($file.'.'.$ending) && !in_array($ending, $remove)) {
+                            $attachment = array('post_mime_type' => $cvtx_mime_types[$ending],
+                                                'post_title'     => $post->post_type.'_'.$post->ID,
+                                                'post_content'   => '',
+                                                'post_status'    => 'inherit',
+                                                'post_parent'    => $post->ID);
+                            $attach_id  = wp_insert_attachment($attachment, $file.'.'.$ending);
+                            update_post_meta($post->ID, 'cvtx_'.$ending.'_id', $attach_id);
+                        }
+                    }
+                } else {
+                    foreach($attach as $ending) {
+                        if($ending == "pdf") {
+                            // return pdf file name
+                            print str_replace(get_home_path(), '', $file.'.'.$ending);
+                        }
                     }
                 }
             }

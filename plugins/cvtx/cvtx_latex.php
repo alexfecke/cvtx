@@ -237,6 +237,19 @@ function cvtx_antrag($post, $strip_nl = true) {
     }
 }
 
+function cvtx_answer_rep($post) {
+    $reps = wp_get_post_terms($post->ID, 'cvtx_tax_assign_to');
+    if(!empty($reps)) {
+        $recipients = '';
+        for($i = 0; $i < count($reps); $i++) {
+            $recipients .= $reps[$i]->name;
+            if($i != count($reps)-1) $recipients .= ', ';
+        }
+        echo(cvtx_get_latex('Stellungnahme der '.$recipients.':'));
+        return;
+    }
+}
+
 function cvtx_antrag_titel($post, $strip_nl = true) {
     if ($post->post_type == 'cvtx_aeantrag') {
         $antrag = get_post(get_post_meta($post->ID, 'cvtx_aeantrag_antrag', true));
