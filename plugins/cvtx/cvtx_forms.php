@@ -16,7 +16,7 @@ function cvtx_mce_manage_buttons($buttons) {
     global $post;
     if ((isset($_REQUEST['post_type']) && ($_REQUEST['post_type'] == 'cvtx_antrag' || $_REQUEST['post_type'] == 'cvtx_aeantrag' || $_REQUEST['post_type'] == 'cvtx_application'))
      || (isset($post) && isset($post->post_type) && ($post->post_type == 'cvtx_antrag' || $post->post_type == 'cvtx_aeantrag' || $post->post_type == 'cvtx_application'))) {
-        return array('bold', 'italic', 'underline', 'strikethrough', 'ins', '|', 'bullist', 'numlist', '|', 'undo', 'redo', 'html', '|', 'formatselect');
+        return array('bold', 'italic', 'underline', 'strikethrough', 'ins', '|', 'bullist', 'numlist', '|', 'undo', 'redo', 'html', '|', 'formatselect', 'styleselect');
     } else {
         return $buttons;
     }
@@ -43,14 +43,52 @@ add_filter('tiny_mce_before_init', 'cvtx_mce_before_init');
  * Restrict blockformats of the rich text editor
  */
 function cvtx_mce_before_init($settings) {
+  	// Define the style_formats array
+  	$style_formats = array(  
+  		  // Each array child is a format with it's own settings
+        array(  
+  			    'title' => 'rot',  
+            'inline' => 'span',  
+            'classes' => 'color-red',
+            'wrapper' => false,
+        ),  
+    		array(  
+      			'title' => 'lila',  
+      			'inline' => 'span',  
+      			'classes' => 'color-lila',
+      			'wrapper' => false,
+    		),
+    		array(  
+      			'title' => 'grau',  
+      			'inline' => 'span',  
+      			'classes' => 'color-grau',
+      			'wrapper' => false,
+    		),
+    		array(  
+      			'title' => 'grün',  
+      			'inline' => 'span',  
+      			'classes' => 'color-green',
+      			'wrapper' => false,
+    		),
+  	);  
+  	// Insert the array, JSON ENCODED, into 'style_formats'
+  	$settings['style_formats'] = json_encode( $style_formats );  
     global $post;
     if ((isset($_REQUEST['post_type']) && ($_REQUEST['post_type'] == 'cvtx_antrag' || $_REQUEST['post_type'] == 'cvtx_aeantrag' || $_REQUEST['post_type'] == 'cvtx_application'))
      || (isset($post) && isset($post->post_type) && ($post->post_type == 'cvtx_antrag' || $post->post_type == 'cvtx_aeantrag' || $post->post_type == 'cvtx_application'))) {
         $settings['theme_advanced_blockformats'] = __('Subsection', 'cvtx').'=h3; '.__('Subsubsection', 'cvtx').'=h4';
     }
+    // Command separated string of extended elements
+    $ext = 'span[class]';
+
+    // Add to extended_valid_elements if it alreay exists
+    if ( isset( $settings['extended_valid_elements'] ) ) {
+        $settings['extended_valid_elements'] .= ',' . $ext;
+    } else {
+        $settings['extended_valid_elements'] = $ext;
+    }
     return $settings;
 }
-
 
 /**
  * Settings for the rich text editors
