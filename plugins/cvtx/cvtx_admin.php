@@ -18,6 +18,8 @@ function cvtx_add_meta_boxes() {
                  'cvtx_reader_contents', 'cvtx_reader', 'normal', 'high');
     add_meta_box('cvtx_reader_pdf', __('PDF', 'cvtx'),
                  'cvtx_metabox_pdf', 'cvtx_reader', 'side', 'low');
+    add_meta_box('cvtx_reader_titlepage', __('Title page', 'cvtx'),
+                 'cvtx_reader_titlepage', 'cvtx_reader', 'normal', 'low');
     
     // Agenda points
     add_meta_box('cvtx_top_event', __('Event', 'cvtx'),
@@ -89,6 +91,10 @@ function cvtx_reader_meta() {
     $book  = ($style == 'book'  || !$style || true  ? 'checked="checked"' : '');    // BUGGY!
     $table = ($style == 'table'            && false ? 'checked="checked"' : '');    // BUGGY! View as table option is ugly crap!
     
+    // start from page number    
+    echo('<label for="cvtx_reader_page_start">'.__('Starting page number', 'cvtx').'</label><br />');
+    echo('<input name="cvtx_reader_page_start" id="cvtx_reader_page_start" type="number" maxlength="4" value="'.(get_post_meta($post->ID, 'cvtx_reader_page_start', true) ? get_post_meta($post->ID, 'cvtx_reader_page_start', true) : '0').'" /><p/>');
+
     // output    
     echo(__('Create PDF as', 'cvtx').'<br />');
     echo('<input name="cvtx_reader_style" id="cvtx_reader_style_book" value="book" type="radio" '.$book.' /> ');
@@ -106,6 +112,28 @@ function cvtx_meta_event() {
     echo('<label for="'.$post->post_type.'_event_select">'.__('Select an event', 'cvtx').':</label> ');
     echo(cvtx_dropdown_events($event_id, $post->post_type, __('No events available.', 'cvtx')));
     echo('<br />');
+}
+
+// Upload title page
+function cvtx_reader_titlepage() {
+    global $post;
+    
+    // get the attachments ID
+    $titlepage = get_post_meta($post->ID, 'cvtx_reader_titlepage_id', true);
+    // an attachment has already been uploaded
+    if ($titlepage) {
+        echo('<p>'.wp_get_attachment_link($titlepage,'thumbnail').'</p>');
+    } else {
+        echo('<p>'.__('No title page uploaded yet.', 'cvtx').'</p>');
+    }
+    
+    // actual form
+    echo('<p>');
+    echo(' <label for="cvtx_reader_titlepage">');
+    echo(($titlepage ? __('Update title page', 'cvtx') : __('Upload title page', 'cvtx')));
+    echo(':</label> ');
+    echo(' <input type="file" name="cvtx_reader_titlepage" id="cvtx_reader_titlepage" />');
+    echo('</p>');
 }
 
 // Inhalt
@@ -433,7 +461,7 @@ add_action('post_edit_form_tag', 'cvtx_post_edit_form_tag');
 function cvtx_post_edit_form_tag() {
     global $post;
     
-    if ($post->post_type == 'cvtx_application') {
+    if ($post->post_type == 'cvtx_application' || $post->post_type == 'cvtx_reader') {
         echo(' enctype="multipart/form-data"');
     }
 }

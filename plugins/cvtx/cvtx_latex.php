@@ -178,6 +178,13 @@ function cvtx_antragsteller_kurz($post, $strip_nl = true) {
     }
 }
 
+function cvtx_reader_titlepage_file($post) {
+    if ($post->post_type == 'cvtx_reader') {
+        $titlepage = get_post_meta($post->ID, 'cvtx_reader_titlepage_id', true);
+        echo(get_attached_file($titlepage));
+    }
+}
+
 function cvtx_top($post, $strip_nl = true) {
     if ($post->post_type == 'cvtx_top') {
         echo(cvtx_get_latex(get_the_title($post->ID), $strip_nl));

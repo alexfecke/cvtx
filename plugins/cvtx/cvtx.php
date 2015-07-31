@@ -37,7 +37,9 @@ load_plugin_textdomain('cvtx', false, dirname(CVTX_PLUGIN_FILE).'/languages');
 
 // define post types
 $cvtx_types = array('cvtx_reader'   => array('cvtx_reader_style',
-                                             'cvtx_reader_event'),
+                                             'cvtx_reader_event',
+                                             'cvtx_reader_page_start',
+                                             'cvtx_reader_titlepage'),
                     'cvtx_top'      => array('cvtx_top_ord',
                                              'cvtx_sort',
                                              'cvtx_top_short',
@@ -477,6 +479,58 @@ function cvtx_insert_post($post_id, $post = null) {
                 if (!in_array($item, $old)) {
                     wp_set_object_terms($item, $terms["$item"], 'cvtx_tax_reader');
                 }
+            }
+            $out_dir = wp_upload_dir();
+            $old_file = cvtx_get_file($post, 'reader_titlepage', 'dir');
+            $filename = $out_dir['path'].'/'.$post->ID.'_titlepage.pdf';
+            $attach_titlepage = array('post_mime_type' => 'application/pdf',
+                                      'post_title'     => $post->post_type.'_titlepage_'.$post->ID,
+                                      'post_content'   => '',
+                                      'post_status'    => 'inherit',
+                                      'post_parent'    => $post->ID);
+            if (isset($_FILES['cvtx_reader_titlepage']) && 
+                ($_FILES['cvtx_reader_titlepage']['size'] > 0)) {
+                $file         = $_FILES['cvtx_reader_titlepage'];
+                // of which filetype is the uploaded file?
+                $validate = wp_check_filetype_and_ext($file['tmp_name'], 
+                                                      basename($file['name']));                      
+                // we accept only pdfs!
+                if (in_array($validate['type'], array('application/pdf'))) {
+                    // is there already an attachment? remove it
+                    if ($existing = get_post_meta($post->ID, 'cvtx_reader_titlepage_id', true)) {
+                        wp_delete_attachment($existing, true);
+                    }
+                    // upload the image
+                    $upload = wp_handle_upload($file, array('test_form' => false));
+                    // check if upload was succesful, get meta-informations
+                    if (!isset($upload['error']) && isset($upload['file'])) {
+                        // move file
+                        rename($upload['file'], $filename);
+                        // insert attachment
+                        $attach_id  = wp_insert_attachment($attach_titlepage, $filename);
+                        $attach_data = wp_generate_attachment_metadata($attach_id, $filename);
+                        wp_update_attachment_metadata($attach_id, $attach_data );
+                        // save attachment id to application
+                        update_post_meta($post->ID, 'cvtx_reader_titlepage_id', $attach_id);
+                    }
+                }
+                else {
+                    //cvtx_error_message('Please use one of the following image types: '.implode(', ',$cvtx_allowed_image_types));
+                }
+            }
+            else if ($old_file !== false && $old_file != $filename) {
+                // move file
+                rename($old_file, $filename);
+                // delete old attachment
+                if ($existing = get_post_meta($post->ID, 'cvtx_reader_titlepage_id', true)) {
+                    wp_delete_attachment($existing, true);
+                }
+                // insert attachment
+                $attach_id  = wp_insert_attachment($attach_titlepage, $filename);
+                $attach_data = wp_generate_attachment_metadata($attach_id, $filename);
+                wp_update_attachment_metadata($attach_id, $attach_data );
+                // save attachment id to application
+                update_post_meta($post->ID, 'cvtx_reader_titlepage_id', $attach_id);
             }
         }
         // Update/insert application
