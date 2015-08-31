@@ -289,15 +289,17 @@ function cvtx_init() {
 /**
  * Returns a globally sortable string
  */
-function cvtx_get_sort($post_type, $top=false, $subject=false, $zeile=false, $vari=false, $year=false, $event=false) {
-    $sorts            = array();
-    if($event && intval($event) == 0) $event = roman_to_arabic($event);
-    $sorts['top']     = ($top     !== false ? (intval($top)     ? sprintf('%1$05d', intval(floatval($top)*100)) : 'ZZZZZ' ) : 'AAAAA' );
-    $sorts['year']    = ($year    !== false ? (intval($year)    ? sprintf('%1$05d', intval($year))              : 'ZZZZZ' ) : 'AAAAA' );
-    $sorts['event']   = ($event   !== false ? (intval($event)   ? sprintf('%1$05d', intval($event))             : 'ZZZZZ' ) : 'AAAAA' );
-    $sorts['subject'] = ($subject !== false ? (intval($subject) ? sprintf('%1$05d', intval($subject))           : 'ZZZZZ' ) : 'AAAAA' );
-    $sorts['zeile']   = ($zeile   !== false ? (intval($zeile)   ? sprintf('%1$06d', intval($zeile))             : 'ZZZZZZ') : 'AAAAAA');
-    $sorts['vari']    = ($vari    !== false ? (intval($vari)    ? sprintf('%1$06d', intval($vari))              : 'ZZZZZZ') : 'AAAAAA');
+function cvtx_get_sort($post_type, $data = array('top' => false, 'subject' => false, 'page' => false, 'zeile' => false, 'vari' => false, 'year' => false, 'event' => false)) {
+    $sorts = array();
+    foreach($data as $key => $val) {
+        if ($val !== false && $key == 'event' && intval($val) == 0) {
+            $event = roman_to_arabic($val);
+        }
+        if ($val !== false && $key == 'top' && $val && intval($val)) {
+            $val = floatval($val)*100;
+        }
+        $sorts[$key] = ($val !== false ? (intval($val) ? sprintf('%1$05d', intval($val)) : 'ZZZZZ' ) : 'AAAAA' );
+    }
 
     foreach ($sorts as $key => $value) {
         if (intval($value) > 0) {
@@ -357,7 +359,7 @@ function cvtx_insert_post($post_id, $post = null) {
         // Update/insert top
         if ($post->post_type == 'cvtx_top') {
             // get globally sortable string
-            $_POST['cvtx_sort'] = cvtx_get_sort('cvtx_top', (isset($_POST['cvtx_top_ord']) ? $_POST['cvtx_top_ord'] : ''));
+            $_POST['cvtx_sort'] = cvtx_get_sort('cvtx_top', $data = array('top' => (isset($_POST['cvtx_top_ord']) ? $_POST['cvtx_top_ord'] : '')));
             
             // check whether antraege and applications may be added to this top or not
             if (!isset($_POST['cvtx_top_antraege'])) {
@@ -392,7 +394,7 @@ function cvtx_insert_post($post_id, $post = null) {
             $event_nr   = get_post_meta($event_id, 'cvtx_event_ord', true);
 
             // get globally sortable string
-            $_POST['cvtx_sort'] = cvtx_get_sort('cvtx_antrag', $top_ord, $antrag_ord, false, false, $event_year, $event_nr);
+            $_POST['cvtx_sort'] = cvtx_get_sort('cvtx_antrag', $data = array('top' => $top_ord, 'subject' => $antrag_ord, 'year' => $event_year, 'event' => $event_nr));
             
             // generate short antragsteller if field is empty
             if (!isset($_POST['cvtx_antrag_steller_short']) || empty($_POST['cvtx_antrag_steller_short'])) {
@@ -426,7 +428,7 @@ function cvtx_insert_post($post_id, $post = null) {
             } else $aeantrag_vari = false;
             
             // get globally sortable string
-            $_POST['cvtx_sort'] = cvtx_get_sort('cvtx_aeantrag', $top_ord, $antrag_ord, $aeantrag_zeile, $aeantrag_vari, $event_year, $event_nr);
+            $_POST['cvtx_sort'] = cvtx_get_sort('cvtx_aeantrag', $data = array('top' => $top_ord, 'subject' => $antrag_ord, 'zeile' => $aeantrag_zeile, 'vari' => $aeantrag_vari, 'year' => $event_year, 'event' => $event_nr));
             
             // generate short antragsteller if field is empty
             if (!isset($_POST['cvtx_aeantrag_steller_short']) || empty($_POST['cvtx_aeantrag_steller_short'])) {
@@ -550,7 +552,7 @@ function cvtx_insert_post($post_id, $post = null) {
             $appl_ord = (isset($_POST['cvtx_application_ord']) ? $_POST['cvtx_application_ord'] : 0);
 
             // get globally sortable string
-            $_POST['cvtx_sort'] = cvtx_get_sort('cvtx_application', $top_ord, $appl_ord);
+            $_POST['cvtx_sort'] = cvtx_get_sort('cvtx_application', $data = array('top' => $top_ord, 'subject' => $appl_ord));
             
             // check whether manually file upload enabled
             if (!isset($_POST['cvtx_application_manually'])) $_POST['cvtx_application_manually'] = 'off';
@@ -905,6 +907,13 @@ function cvtx_create_pdf($post_id, $post = null, $event_id = false) {
             
             // set file post type
             $file_post_type = 'cvtx_reader_'.$style;
+
+            // get reader type
+            if (function_exists('cvtx_spd_map_reader_type')) {
+                $type = get_post_meta($post->ID, 'cvtx_reader_type', true);
+                $type_short = cvtx_map_reader_type($type);                
+                $file_post_type = 'cvtx_reader_'.$style.'_'.$type_short;
+            }
         }
         // prepare for taxonomy
         else if (property_exists($post, 'slug')) {
@@ -917,6 +926,10 @@ function cvtx_create_pdf($post_id, $post = null, $event_id = false) {
             // use special theme template for id=x if exists
             if (property_exists($post, 'post_type') && is_file($tpl_dir.'/single-'.$file_post_type.'-'.$post->ID.'.php')) {
                 $tpl = $tpl_dir.'/single-'.$file_post_type.'-'.$post->ID.'.php';
+            }
+            // special template for resolutions after decision
+            else if(function_exists('cvtx_spd_antrag_is_decided') && property_exists($post, 'post_type') && $post->post_type == 'cvtx_antrag' && cvtx_spd_antrag_is_decided($post->ID) && is_file($tpl_dir.'/single-'.$file_post_type.'-decided.php')) {
+                $tpl = $tpl_dir.'/single-'.$file_post_type.'-decided.php';
             }
             // use theme template
             else if(is_file($tpl_dir.'/single-'.$file_post_type.'.php')) {

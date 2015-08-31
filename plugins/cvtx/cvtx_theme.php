@@ -355,6 +355,7 @@ function cvtx_reader_action($post_id = false) {
     if (!isset($post_id) || !$post_id) global $post;
     else $post = get_post($post_id);
     if (is_object($post) && $post->post_type == 'cvtx_reader') {
+        $reader_type = get_post_meta($post->ID, 'cvtx_reader_type', true);
         $items = array();
         $query = new WP_Query(array('post_type' => array('cvtx_antrag',
                                                          'cvtx_aeantrag',
@@ -377,6 +378,9 @@ function cvtx_reader_action($post_id = false) {
         $open_antrag = false;
         foreach ($items as $item) {
             $post = get_post($item);
+            if(function_exists('cvtx_spd_part_of_bbuch') && $reader_type == __('Beschlussbuch', 'cvtx') && !cvtx_part_of_bbuch($post)) {
+              continue;
+            }
             if ($post->post_type == 'cvtx_top') {
                 if ($open_antrag || $open_top) echo('</ul></li>');
                 echo('<li><h4>'); the_title(); echo('</h4><ul>');

@@ -42,8 +42,13 @@ function cvtx_add_meta_boxes() {
                  'cvtx_metabox_reader', 'cvtx_antrag', 'side', 'low');
     
     // Amendments
-    add_meta_box('cvtx_aeantrag_meta', __('Metadata', 'cvtx'),
-                 'cvtx_aeantrag_meta', 'cvtx_aeantrag', 'side', 'high');
+    if (function_exists('cvtx_spd_aeantrag_meta')) {
+        add_meta_box('cvtx_aeantrag_meta', __('Metadata', 'cvtx'),
+                     'cvtx_spd_aeantrag_meta', 'cvtx_aeantrag', 'side', 'high');        
+    } else {
+        add_meta_box('cvtx_aeantrag_meta', __('Metadata', 'cvtx'),
+                     'cvtx_aeantrag_meta', 'cvtx_aeantrag', 'side', 'high');
+    }
     add_meta_box('cvtx_aeantrag_steller', __('Author(s)', 'cvtx'),
                  'cvtx_aeantrag_steller', 'cvtx_aeantrag', 'normal', 'high');
     add_meta_box('cvtx_aeantrag_grund', __('Explanation', 'cvtx'),
@@ -1350,7 +1355,7 @@ function cvtx_config_amendment_submitted_text() {
 }
 
 function cvtx_import($post, $mappings) {
-    global $cvtx_types;
+    global $cvtx_types, $cvtx_spd_types;
     if($post->post_type == 'cvtx_antrag' || $post->post_type == 'cvtx_top' || $post->post_type == 'cvtx_event') {
         $existing = get_page_by_title($post->post_title, 'OBJECT', $post->post_type);
     } else if($post->post_type == 'cvtx_aeantrag') {
@@ -1426,6 +1431,11 @@ function cvtx_import($post, $mappings) {
         } else {
             foreach($cvtx_types[$post->post_type] as $key) {
                 add_post_meta($post_id, $key, $post->{$key});
+            }
+            if($cvtx_spd_types != null && is_array($cvtx_spd_types)) {
+                foreach($cvtx_spd_types[$post->post_type] as $key) {
+                    add_post_meta($post_id, $key, $post->{$key});
+                }
             }
             if($post->post_type == 'cvtx_antrag') {
                 update_post_meta($post_id, 'cvtx_antrag_top', $mappings[$post->cvtx_antrag_top]);
@@ -2229,7 +2239,7 @@ function cvtx_encode_csv($data) {
 }
 
 function cvtx_exportable_post($post) {
-    global $cvtx_types;
+    global $cvtx_types, $cvtx_spd_types;
     $post_data = array(
         'ID' => $post->ID,
         'post_title' => $post->post_title,
@@ -2247,6 +2257,11 @@ function cvtx_exportable_post($post) {
     $post_data['assign_to'] = implode(',', $assign_to);
     foreach($cvtx_types[$post->post_type] as $key) {
         $post_data[$key] = get_post_meta($post->ID, $key, true);
+    }
+    if ($cvtx_spd_types != null && is_array($cvtx_spd_types)) {
+        foreach($cvtx_spd_types[$post->post_type] as $key) {
+            $post_data[$key] = get_post_meta($post->ID, $key, true);
+        }
     }
     return $post_data;
 }
