@@ -1,0 +1,129 @@
+/**
+ * CSS, used for the ae_antraege-Template
+ *
+ * @package WordPress
+ * @subpackage cvtx_theme_spd
+ */
+
+@font-face {
+    font-family: TheSans;
+    src: url(http://spd-berlin.de/static/font/thesans-lp5plain-webfont.eot);
+    src: url(http://spd-berlin.de/static/font/thesans-lp5plain-webfont.eot?#iefix) format('embedded-opentype'),
+         url(http://spd-berlin.de/static/font/thesans-lp5plain-webfont.woff) format('woff'),
+         url(http://spd-berlin.de/static/font/thesans-lp5plain-webfont.ttf) format('truetype');
+    font-weight: normal;
+}
+
+@font-face {
+    font-family: TheSans;
+    src: url(http://spd-berlin.de/static/font/thesans-lp7bld-webfont.eot);
+    src: url(http://spd-berlin.de/static/font/thesans-lp7bld-webfont.eot?#iefix) format('embedded-opentype'),
+         url(http://spd-berlin.de/static/font/thesans-lp7bld-webfont.woff) format('woff'),
+         url(http://spd-berlin.de/static/font/thesans-lp7bld-webfont.ttf) format('truetype');
+    font-weight: bold;
+}
+
+body {
+  font-family: "TheSans", Verdana, sans-serif;
+  background: white;
+  margin:0px;
+  padding:0px;
+  font-size: 0.9em;
+}
+
+#header {
+	background-color: #980065;
+	margin-bottom: 1em;
+	-webkit-box-shadow: 0px 0px 5px rgba(0,0,0,0.4);
+	-moz-box-shadow: 0px 0px 5px rgba(0,0,0,0.4);
+	box-shadow: 0px 0px 5px rgba(0,0,0,0.4);
+	color: white;
+}
+
+#verlauf {
+	background: url(images/verlauf.png) top right no-repeat;
+	padding: 0.1em 1.4em;
+}
+
+#header a {
+	color: white;
+	text-shadow: 0px 0px 3px rgba(255,255,255,0.3);
+	text-decoration: none;
+}
+
+#header span.right {
+	float: right;
+	font-weight: bold;
+}
+
+table {
+	border:1px solid black;
+	border-collapse: collapse;
+	display: table;
+}
+
+#result {
+	margin: 1em;
+}
+
+tbody {
+	display: table-row-group;
+	vertical-align: middle;
+}
+
+td, th {
+	border: 1px solid black;
+	padding: 5px 10px;
+    vertical-align: top;
+}
+
+td.†bernahme {
+	background: green;
+	color: white;
+}
+
+form select {
+	margin-bottom:1em;
+}
+
+div#liste {
+	padding: 0;
+	border: 1px solid rgba(0,0,0,0.5);
+	border-radius: 7px;
+	background: #fafafa;
+	margin: 0em 1em;
+}
+
+#liste form {
+	padding:1em;
+}
+
+div.toggler {
+	height: 1em;
+	padding: 1em;
+	margin: 0em 0em 1em 0em;
+	background: url(images/verlauf2.png) repeat-x bottom rgba(0,0,0,0.6);
+	border-top-right-radius: 5px;
+	border-top-left-radius: 5px;
+	text-align: right;
+	font-size:0.8em;
+}
+
+div.toggler a {
+	color: white;
+	text-decoration: none;
+}
+
+input {
+	border: 1px solid #333;
+	background: rgba(255,255,255,0.7);
+	background: url(images/verlauf2.png) repeat-x bottom rgba(0,0,0,0.8);
+	border-radius: 7px;
+	padding: 5px 10px;
+	color: white;
+	font-weight: bold;
+}
+
+p.verfahren {
+	font-weight: bold;
+}
