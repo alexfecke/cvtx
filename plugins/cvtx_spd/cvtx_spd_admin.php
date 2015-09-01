@@ -26,6 +26,13 @@ function cvtx_spd_add_meta_boxes() {
                  'cvtx_aeantrag_decision', 'cvtx_aeantrag', 'normal', 'default');
     add_meta_box('cvtx_aeantrag_answer', __('Stellungnahme', 'cvtx'),
                  'cvtx_answer_box', 'cvtx_aeantrag', 'normal', 'default');
+                 
+    // Remove Meta boxes
+    remove_meta_box('cvtx_aeantrag_verfahren', 'cvtx_aeantrag', 'normal');
+    remove_meta_box('cvtx_aeantrag_meta', 'cvtx_aeantrag', 'normal');
+    
+    add_meta_box('cvtx_spd_aeantrag_meta', __('Metadata', 'cvtx'),
+                 'cvtx_spd_aeantrag_meta', 'cvtx_aeantrag', 'side', 'high');        
 }
 
 function cvtx_spd_reader_type() {

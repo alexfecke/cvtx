@@ -40,15 +40,12 @@ function cvtx_add_meta_boxes() {
                  'cvtx_metabox_pdf', 'cvtx_antrag', 'side', 'low');
     add_meta_box('cvtx_antrag_reader', __('Reader assignment', 'cvtx'),
                  'cvtx_metabox_reader', 'cvtx_antrag', 'side', 'low');
+    add_meta_box('cvtx_antrag_poll', __('Resolution poll', 'cvtx'),
+                 'cvtx_antrag_poll', 'cvtx_antrag', 'side', 'low');
     
     // Amendments
-    if (function_exists('cvtx_spd_aeantrag_meta')) {
-        add_meta_box('cvtx_aeantrag_meta', __('Metadata', 'cvtx'),
-                     'cvtx_spd_aeantrag_meta', 'cvtx_aeantrag', 'side', 'high');        
-    } else {
-        add_meta_box('cvtx_aeantrag_meta', __('Metadata', 'cvtx'),
-                     'cvtx_aeantrag_meta', 'cvtx_aeantrag', 'side', 'high');
-    }
+    add_meta_box('cvtx_aeantrag_meta', __('Metadata', 'cvtx'),
+                 'cvtx_aeantrag_meta', 'cvtx_aeantrag', 'side', 'high');
     add_meta_box('cvtx_aeantrag_steller', __('Author(s)', 'cvtx'),
                  'cvtx_aeantrag_steller', 'cvtx_aeantrag', 'normal', 'high');
     add_meta_box('cvtx_aeantrag_grund', __('Explanation', 'cvtx'),
@@ -64,6 +61,8 @@ function cvtx_add_meta_boxes() {
     }
     add_meta_box('cvtx_aeantrag_reader', __('Reader assignment', 'cvtx'),
                  'cvtx_metabox_reader', 'cvtx_aeantrag', 'side', 'low');
+    add_meta_box('cvtx_aeantrag_poll', __('Amendment poll', 'cvtx'),
+                 'cvtx_aeantrag_poll', 'cvtx_aeantrag', 'side', 'high');
 
     // Applications
     add_meta_box('cvtx_application_meta', __('Metadata', 'cvtx'),
@@ -82,6 +81,57 @@ function cvtx_add_meta_boxes() {
     // Events
     add_meta_box('cvtx_event_meta', __('Metadata', 'cvtx'),
                  'cvtx_event_meta', 'cvtx_event', 'side', 'high');
+}
+
+add_action('bulk_edit_custom_box', 'display_poll_quickedit_antrag', 10, 2 );
+function display_poll_quickedit_antrag($column_name, $post_type) {
+    static $printNonce = TRUE;
+    if ( $printNonce ) {
+        $printNonce = FALSE;
+        wp_nonce_field(plugin_basename( __FILE__ ), 'poll_edit_nonce');
+    }
+    if($column_name == 'cvtx_antrag_poll' || $column_name == 'cvtx_aeantrag_poll'):
+    ?>
+    <fieldset class="inline-edit-col-right inline-edit-book">
+      <div class="inline-edit-col column-<?php echo $column_name ?>">
+        <label class="inline-edit-group">Abstimmung</label>
+        <?php 
+         switch ( $column_name ) {
+         case 'cvtx_antrag_poll':
+             cvtx_antrag_poll();
+             break;
+         case 'cvtx_aeantrag_poll':
+             cvtx_aeantrag_poll();
+             break;
+         }
+        ?>
+      </div>
+    </fieldset>
+    <?php
+    endif;
+}
+
+add_action( 'wp_ajax_save_bulk_edit_cvtx', 'save_bulk_edit_cvtx' );
+function save_bulk_edit_cvtx() {
+	// TODO perform nonce checking
+	// get our variables
+	$post_ids           = ( ! empty( $_POST[ 'post_ids' ] ) ) ? $_POST[ 'post_ids' ] : array();
+	$cvtx_antrag_poll   = ( ! empty( $_POST[ 'cvtx_antrag_poll' ] ) ) ? $_POST[ 'cvtx_antrag_poll' ] : null;
+	$cvtx_aeantrag_poll = ( ! empty( $_POST[ 'cvtx_aeantrag_poll' ] ) ) ? $_POST[ 'cvtx_aeantrag_poll' ] : null;
+
+	// if everything is in order
+	if ( ! empty( $post_ids ) && is_array( $post_ids ) ) {
+		foreach( $post_ids as $post_id ) {
+		  if ($cvtx_antrag_poll) {
+  			update_post_meta( $post_id, 'cvtx_antrag_poll', $cvtx_antrag_poll);
+		  }
+		  if ($cvtx_aeantrag_poll) {
+  			update_post_meta( $post_id, 'cvtx_aeantrag_poll', $cvtx_aeantrag_poll);  		  
+		  }
+		}
+	}
+
+	die();
 }
 
 /**
@@ -467,6 +517,27 @@ function cvtx_aeantrag_verfahren() {
     }
 }
 
+// Beschluss
+function cvtx_aeantrag_poll() {
+    global $post;
+    echo('<select name="cvtx_aeantrag_poll" id="cvtx_aeantrag_poll"><option>Nicht abgestimmt</option>');
+    $beschluss = array(__('Annahme', 'cvtx'), __('Ablehnung', 'cvtx'), __('Erledigt', 'cvtx'), __('Überweisung', 'cvtx'));
+    foreach ($beschluss as $beschl) {
+        echo('<option'.($beschl == get_post_meta($post->ID, 'cvtx_aeantrag_poll', true) ? ' selected="selected"' : '').'>'.$beschl.'</option>');
+    }
+    echo('</select> ');
+}
+
+// Beschluss
+function cvtx_antrag_poll() {
+    global $post;
+    echo('<select name="cvtx_antrag_poll" id="cvtx_antrag_poll"><option>Nicht abgestimmt</option>');
+    $beschluss = array(__('Annahme', 'cvtx'), __('Ablehnung', 'cvtx'), __('Erledigt', 'cvtx'), __('Überweisung', 'cvtx'));
+    foreach ($beschluss as $beschl) {
+        echo('<option'.($beschl == get_post_meta($post->ID, 'cvtx_antrag_poll', true) ? ' selected="selected"' : '').'>'.$beschl.'</option>');
+    }
+    echo('</select> ');
+}
 
 /* Applications */
 
@@ -726,6 +797,7 @@ function cvtx_antrag_columns($columns) {
                      'cvtx_antrag_top'     => __('Agenda point', 'cvtx'),
                      'cvtx_antrag_status'  => '',
                      'date'                => __('Date', 'cvtx'));
+    $columns['cvtx_antrag_poll'] = __('Poll', 'cvtx');
     return $columns;
 }
 
@@ -733,6 +805,7 @@ function cvtx_antrag_columns($columns) {
 if (is_admin()) add_filter('manage_edit-cvtx_antrag_sortable_columns', 'cvtx_register_sortable_antrag');
 function cvtx_register_sortable_antrag($columns) {
     $columns['cvtx_antrag_steller'] = 'cvtx_antrag_steller';
+    $columns['cvtx_antrag_poll'] = 'cvtx_antrag_poll';
     return $columns;
 }
 
@@ -755,6 +828,7 @@ function cvtx_aeantrag_columns($columns) {
                      'cvtx_aeantrag_antrag'    => __('Resolution', 'cvtx'),
                      'cvtx_aeantrag_status'    => '',
                      'date'                    => __('Date', 'cvtx'));
+    $columns['cvtx_aeantrag_poll'] = __('Poll', 'cvtx');
     return $columns;
 }
 
@@ -763,6 +837,7 @@ if (is_admin()) add_filter('manage_edit-cvtx_aeantrag_sortable_columns', 'cvtx_r
 function cvtx_register_sortable_aeantrag($columns) {
     $columns['cvtx_aeantrag_steller']   = 'cvtx_aeantrag_steller';
     $columns['cvtx_aeantrag_verfahren'] = 'cvtx_aeantrag_verfahren';
+    $columns['cvtx_aeantrag_poll'] = 'cvtx_aeantrag_poll';
     return $columns;
 }
 
@@ -810,6 +885,9 @@ function cvtx_format_lists($column) {
                 echo('<a href="'.$file.'">'.__('Download', 'cvtx').' (pdf)</a>');
             }
             break;
+        case "cvtx_antrag_poll":
+            echo(get_post_meta($post->ID, 'cvtx_antrag_poll', true));
+            break;
             
         // Ä-Anträge
         case 'cvtx_aeantrag_ord':
@@ -831,6 +909,9 @@ function cvtx_format_lists($column) {
             if (isset($options['cvtx_aeantrag_pdf']) && $file = cvtx_get_file($post, 'pdf', 'url')) {
                 echo('<a href="'.$file.'">'.__('Download', 'cvtx').' (pdf)</a>');
             }
+            break;
+        case "cvtx_aeantrag_poll":
+            echo(get_post_meta($post->ID, 'cvtx_aeantrag_poll', true));
             break;
             
         // Applications
@@ -994,6 +1075,54 @@ function cvtx_admin_posts_filter_tax_assign(){
     $post = $post_bak;
 }
 
+/**
+ * Add custom filter for Konsens-Verfahrensvorschläge to the resolution list 
+ */
+add_action('restrict_manage_posts', 'cvtx_admin_posts_filter_poll' );
+/**
+ * First create the dropdown
+ * make sure to change POST_TYPE to the name of your custom post type
+ * 
+ * @author Ohad Raz
+ * 
+ * @return void
+ */
+function cvtx_admin_posts_filter_poll(){
+    $type = 'post';
+    if (isset($_GET['post_type'])) {
+        $type = $_GET['post_type'];
+    }
+
+    //only add filter to post type you want
+    if ('cvtx_antrag' == $type || 'cvtx_aeantrag' == $type) {
+        //change this to the list of values you want to show
+        //in 'label' => 'value' format
+        $values = array(
+            'Nicht abgestimmt' => 'Nicht abgestimmt', 
+            'Annahme' => 'Annahme',
+            'Ablehnung' => 'Ablehnung',
+            'Erledigt' => 'Erledigt',
+            'Überweisung' => 'Überweisung',
+        );
+        ?>
+        <select name="cvtx_filter_antraege_by_poll">
+        <option value=""><?php _e('Abstimmungsergebnis', 'cvtx'); ?></option>
+        <?php
+            $current_v = isset($_GET['cvtx_filter_antraege_by_poll'])? $_GET['cvtx_filter_antraege_by_poll']:'';
+            foreach ($values as $label => $value) {
+                printf(
+                        '<option value="%s"%s>%s</option>',
+                        $value,
+                        $value == $current_v? ' selected="selected"':'',
+                        $label
+                    );
+                }
+        ?>
+        </select>
+        <?php
+    }
+}
+
 add_filter( 'parse_query', 'cvtx_posts_filter' );
 /**
  * if submitted filter by post meta
@@ -1052,6 +1181,11 @@ function cvtx_posts_filter( $query ){
                                                    'value' => $events,
                                                    'compare' => 'IN');
         }
+    }
+    if (('cvtx_antrag' == $type || 'cvtx_aeantrag' == $type) && is_admin() && $pagenow=='edit.php' && isset($_GET['cvtx_filter_antraege_by_poll']) && $_GET['cvtx_filter_antraege_by_poll'] != '') {
+        $query->query_vars['meta_query'][] = array('key' => $type.'_poll',
+                                                   'value' => $_GET['cvtx_filter_antraege_by_poll'],
+                                                   'compare' => '=');
     }
 }
 

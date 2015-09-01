@@ -93,6 +93,20 @@ function cvtx_grund_action($post_id = false) {
     }
 }
 
+add_action('cvtx_theme_poll', 'cvtx_poll_action', 10, 2);
+function cvtx_poll_action($post_id = false, $naked = false) {
+  if(!(isset($post_id) || !$post_id)) global $post;
+  else $post = get_post($post_id);
+  
+  if(is_object($post)) {
+    $poll = get_post_meta($post->ID, $post->post_type.'_poll', true);
+    if($post->post_type == 'cvtx_antrag' && !$naked) echo('<h3>Beschluss</h3>');
+    elseif($post->post_type == 'cvtx_antrag' && $naked) echo('<p><strong>Beschluss:</strong>');
+    else if($post->post_type == 'cvtx_aeantrag') echo('<h4 class="title poll">Beschluss:</h4>');
+    echo($poll);
+  }
+}
+
 add_action('cvtx_theme_gender', 'cvtx_gender_action', 10, 1);
 /**
  * themed output of cvtx_antrag_grund
