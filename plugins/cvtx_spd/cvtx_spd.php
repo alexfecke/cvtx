@@ -18,7 +18,6 @@ define('CVTX_SPD_PLUGIN_DIR', plugin_dir_path(__FILE__));
 
 require_once(CVTX_SPD_PLUGIN_DIR.'/cvtx_spd_admin.php');
 require_once(CVTX_SPD_PLUGIN_DIR.'/cvtx_spd_latex.php');
-require_once(CVTX_SPD_PLUGIN_DIR.'/cvtx_spd_widgets.php');
 require_once(CVTX_SPD_PLUGIN_DIR.'/cvtx_spd_theme.php');
 
 /**
@@ -84,7 +83,7 @@ function cvtx_spd_insert_post($post_id, $post = null) {
             } else $aeantrag_vari = false;
             
             // get globally sortable string
-            $_POST['cvtx_sort'] = cvtx_get_sort('cvtx_aeantrag', $data = array('top' => $top_ord, 'subject' => $antrag_ord, 'page' => $aeantrag_page, 'zeile' => $aeantrag_zeile, 'vari' => $aeantrag_vari, 'year' => $event_year, 'event' => $event_nr);
+            $_POST['cvtx_sort'] = cvtx_get_sort('cvtx_aeantrag', $data = array('top' => $top_ord, 'subject' => $antrag_ord, 'page' => $aeantrag_page, 'zeile' => $aeantrag_zeile, 'vari' => $aeantrag_vari, 'year' => $event_year, 'event' => $event_nr));
         }
         foreach ($cvtx_spd_types[$post->post_type] as $key) {
             if (isset($_POST[$key])) {

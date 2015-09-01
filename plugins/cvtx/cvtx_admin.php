@@ -42,6 +42,10 @@ function cvtx_add_meta_boxes() {
                  'cvtx_metabox_reader', 'cvtx_antrag', 'side', 'low');
     add_meta_box('cvtx_antrag_poll', __('Resolution poll', 'cvtx'),
                  'cvtx_antrag_poll', 'cvtx_antrag', 'side', 'low');
+    if(isset($options['cvtx_antrag_source']) && is_array($options['cvtx_antrag_source']) && !empty($options['cvtx_antrag_source']) && $options['cvtx_antrag_source'][0] == true) {
+        add_meta_box('cvtx_antrag_source', __('Antragsquelle', 'cvtx'),
+                     'cvtx_antrag_source_meta', 'cvtx_antrag', 'normal', 'low');
+    }
     
     // Amendments
     add_meta_box('cvtx_aeantrag_meta', __('Metadata', 'cvtx'),
@@ -419,6 +423,21 @@ function cvtx_antrag_steller() {
     echo('<input type="text" id="cvtx_antrag_email" name="cvtx_antrag_email" value="'.get_post_meta($post->ID, 'cvtx_antrag_email', true).'" /> ');
     echo('<label for="cvtx_antrag_phone">'.__('Mobile number', 'cvtx').':</label> ');
     echo('<input type="text" id="cvtx_antrag_phone" name="cvtx_antrag_phone" value="'.get_post_meta($post->ID, 'cvtx_antrag_phone', true).'" />');
+}
+
+// Quelle
+function cvtx_antrag_source_meta() {
+    global $post;
+    $options = get_option('cvtx_options');
+
+    echo('<label for="cvtx_antrag_source_date">'.__('Beschlossen am', 'cvtx').':</label> ');
+    echo('<input type="date" id="cvtx_antrag_source_date" name="cvtx_antrag_source_date" value="'.get_post_meta($post->ID, 'cvtx_antrag_source_date', true).'" /><br />');
+    echo('<label for="cvtx_antrag_source">'.__('Beschlossen durch', 'cvtx').':</label> ');
+    echo('<select name="cvtx_antrag_source" id="cvtx_antrag_source">');
+    foreach ($options['cvtx_antrag_source'] as $source) {
+        echo('<option'.(trim($source) == get_post_meta($post->ID, 'cvtx_antrag_source', true) ? ' selected="selected"' : '').'>'.$source.'</option>');
+    }
+    echo('</select> ');
 }
 
 // Begründung
@@ -1686,6 +1705,7 @@ function cvtx_admin_init(){
     add_settings_field('cvtx_privacy_message', __('Privacy message to be shown below e-mail and phone form fields', 'cvtx'), 'cvtx_privacy_message', 'cvtx_config', 'cvtx_main');
     add_settings_field('cvtx_phone_required', __('Phone number','cvtx'), 'cvtx_phone_required', 'cvtx_config', 'cvtx_main');
     add_settings_field('cvtx_antrag_predefined_event', __('Veranstaltung voreinstellen'), 'cvtx_antrag_predefined_event', 'cvtx_config', 'cvtx_main');
+    add_settings_field('cvtx_antrag_source', __('mögliche Quellen eines Antrags'), 'cvtx_antrag_source', 'cvtx_config', 'cvtx_main');
     // register notification settings
     add_settings_field('cvtx_send_html_mail', __('HTML mail', 'cvtx'), 'cvtx_send_html_mail', 'cvtx_config', 'cvtx_notifications');
     add_settings_field('cvtx_send_from_email', __('Sender address', 'cvtx'), 'cvtx_send_from_email', 'cvtx_config', 'cvtx_notifications');
@@ -1710,6 +1730,7 @@ function cvtx_admin_init(){
     add_settings_field('cvtx_drop_logfile', __('Remove generated .log-files', 'cvtx'), 'cvtx_drop_logfile', 'cvtx_config', 'cvtx_latex');
     add_settings_field('cvtx_latex_tpldir', __('User templates', 'cvtx'), 'cvtx_latex_tpldir', 'cvtx_config', 'cvtx_latex');
     // register application settings
+    add_settings_field('cvtx_application_gender_check', __('Geschlecht abfragen', 'cvtx'), 'cvtx_application_gender_check', 'cvtx_config', 'cvtx_applications');
     add_settings_field('cvtx_max_image_size', __('Max. size for application images', 'cvtx'), 'cvtx_max_image_size', 'cvtx_config', 'cvtx_applications');
     add_settings_field('cvtx_application_topics', __('Topics', 'cvtx'), 'cvtx_application_topics', 'cvtx_config', 'cvtx_applications');
     add_settings_field('cvtx_application_kvs_name', __('Gliederungen 1 - Name', 'cvtx'), 'cvtx_application_kvs_name', 'cvtx_config', 'cvtx_applications');
@@ -2170,10 +2191,23 @@ function cvtx_latex_tpldir() {
     echo('<span class="description">'.__('Subdirectory of the used theme that provides LaTeX templates', 'cvtx').'</span>');
 }
 
+function cvtx_application_gender_check() {
+    $options = get_option('cvtx_options');
+    echo('<input id="cvtx_application_gender_check" name="cvtx_options[cvtx_application_gender_check]" type="checkbox" '.(isset($options['cvtx_application_gender_check']) ? 'checked ="checked"' :'').'" /> ');
+    echo('<span class="description">'.__('Aktivieren, wenn bei Bewerbungen das Geschlecht abgefragt werden soll.', 'cvtx').'</span>');
+}
+
 function cvtx_max_image_size() {
     $options = get_option('cvtx_options');
     echo('<input id="cvtx_max_image_size" name="cvtx_options[cvtx_max_image_size]" type="text" value="'.$options['cvtx_max_image_size'].'" /> ');
     echo('<span class="description">(KB)</span>');
+}
+
+function cvtx_antrag_source() {
+    $options = get_option('cvtx_options');
+    if (!isset($options['cvtx_antrag_source']) || !is_array($options['cvtx_antrag_source'])) $options['cvtx_antrag_source'] = array();
+    echo('<textarea id="cvtx_antrag_source" name="cvtx_options[cvtx_antrag_source]" cols="60" rows="10">'.implode("\n", $options['cvtx_antrag_source']).'</textarea> ');
+    echo('<span class="description">(mögliche Quellen zeilenweise eintragen. Keine Quellen bedeutet, dass das Feld "Quelle" im Antragsformular ausgeblendet wird.</span>');
 }
 
 function cvtx_application_topics() {
@@ -2215,6 +2249,7 @@ function cvtx_options_validate($input) {
     $newinput = $input;
     $newinput['cvtx_send_from_email'] = stripslashes(htmlspecialchars($input['cvtx_send_from_email']));
     $newinput['cvtx_send_rcpt_email'] = stripslashes(htmlspecialchars($input['cvtx_send_rcpt_email']));
+    $newinput['cvtx_antrag_source']   = explode("\n", $input['cvtx_antrag_source']);
     $newinput['cvtx_application_topics'] = explode("\n", $input['cvtx_application_topics']);
     $newinput['cvtx_application_kvs'] = explode("\n", $input['cvtx_application_kvs']);
     $newinput['cvtx_application_bvs'] = explode("\n", $input['cvtx_application_bvs']);

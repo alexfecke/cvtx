@@ -109,89 +109,100 @@ function cvtx_tinymce_settings() {
  * @param string $cvtx_antrag_phone phone number if it has already been submitted
  * @param string $cvtx_antrag_grund antragsbegruendung, if already submitted
  */
-function cvtx_create_antrag_form($cvtx_antrag_top = 0,  $cvtx_antrag_title = '', $cvtx_antrag_text = '', $cvtx_antrag_steller = '', $cvtx_antrag_email = '', $cvtx_antrag_phone = '', $cvtx_antrag_grund = '', $show_recaptcha = true) {
+function cvtx_create_antrag_form($cvtx_antrag_top = 0,  $cvtx_antrag_title = '', $cvtx_antrag_text = '', $cvtx_antrag_steller = '', $cvtx_antrag_email = '', $cvtx_antrag_phone = '', $cvtx_antrag_grund = '', $cvtx_antrag_source = '', $cvtx_antrag_source_date = '', $show_recaptcha = true) {
     $options = get_option('cvtx_options');
     ?>
     <form id="create_antrag_form" class="cvtx_antrag_form cvtx_form" method="post" action="">
-     <?php echo(wp_nonce_field('cvtx_form_create_antrag', 'cvtx_form_create_antrag_submitted')); ?>
-     <fieldset class="fieldset">
-      <div class="legend"><h3><?php _e('Title', 'cvtx'); ?></h3></div>
-      <div class="form-item">
-       <label for="cvtx_antrag_title"><?php _e('Title', 'cvtx'); ?>: <span class="form-required" title="<?php _e('This field is mandatory', 'cvtx'); ?>">*</span></label><br/>
-       <input type="text" id="cvtx_antrag_title" name="cvtx_antrag_title" class="required" value="<?php echo($cvtx_antrag_title); ?>" size="80" /><br />
-      </div>
-      <div class="form-item">
-       <label for="cvtx_antrag_top"><?php _e('Agenda point', 'cvtx'); ?>: <span class="form-required" title="<?php _e('This field is mandatory', 'cvtx'); ?>">*</span></label><br />
-       <?php echo(cvtx_dropdown_tops($cvtx_antrag_top, __('No agenda created', 'cvtx'))); ?><br />
-      </div><br/>
-     </fieldset>
+        <?php echo(wp_nonce_field('cvtx_form_create_antrag', 'cvtx_form_create_antrag_submitted')); ?>
+        <fieldset class="fieldset">
+            <div class="legend"><h3><?php _e('Title', 'cvtx'); ?></h3></div>
+            <div class="form-item">
+                <label for="cvtx_antrag_title"><?php _e('Title', 'cvtx'); ?>: <span class="form-required" title="<?php _e('This field is mandatory', 'cvtx'); ?>">*</span></label><br/>
+                <input type="text" id="cvtx_antrag_title" name="cvtx_antrag_title" class="required" value="<?php echo($cvtx_antrag_title); ?>" size="80" /><br />
+            </div>
+            <div class="form-item">
+                <label for="cvtx_antrag_top"><?php _e('Agenda point', 'cvtx'); ?>: <span class="form-required" title="<?php _e('This field is mandatory', 'cvtx'); ?>">*</span></label><br />
+                <?php echo(cvtx_dropdown_tops($cvtx_antrag_top, __('No agenda created', 'cvtx'))); ?><br />
+            </div><br/>
+        </fieldset>
+        
+        <?php if(isset($options['cvtx_antrag_source']) && is_array($options['cvtx_antrag_source']) && !empty($options['cvtx_antrag_source']) && $options['cvtx_antrag_source'][0] == true): ?>
+        <fieldset class="fieldset">
+            <div class="legend"><h3><?php _e('Quelle', 'cvtx'); ?></h3></div>
+            <div class="form-item">
+                <label for="cvtx_antrag_source_date"><?php echo __('Beschlossen am', 'cvtx'); ?>: <span class="form-required" title="<?php _e('This field is mandatory', 'cvtx'); ?>">*</span></label>
+                <input type="date" id="cvtx_antrag_source_date" name="cvtx_antrag_source_date" class="required" value="<?php echo $cvtx_antrag_source; ?>" /><p />
+                <label for="cvtx_antrag_source"><?php echo __('Beschlossen durch', 'cvtx'); ?>: <span class="form-required" title="<?php _e('This field is mandatory', 'cvtx'); ?>">*</span></label>
+                <select name="cvtx_antrag_source" id="cvtx_antrag_source" class="required">
+                    <?php foreach ($options['cvtx_antrag_source'] as $source): ?>
+                        <option<?php echo (trim($source) == $cvtx_antrag_source ? ' selected="selected"' : ''); ?>><?php echo $source; ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </fieldset>
+        <?php endif; ?>
      
-     <fieldset class="fieldset">
-      <div class="legend"><h3><?php _e('Author(s)', 'cvtx'); ?></h3></div>
-      <div class="form-item">
-       <label for="cvtx_antrag_steller"><?php _e('Author(s)', 'cvtx'); ?>: <span class="form-required" title="<?php _e('This field is mandatory', 'cvtx'); ?>">*</span></label><br/>
-       <textarea id="cvtx_antrag_steller" name="cvtx_antrag_steller" class="required" size="100%" cols="60" rows="5" /><?php echo($cvtx_antrag_steller); ?></textarea><br/>
-      </div>
-      <div class="form-item">
-       <label for="cvtx_antrag_email"><?php _e('E-mail address', 'cvtx'); ?>: <span class="form-required" title="<?php _e('This field is mandatory', 'cvtx'); ?>">*</span></label> (<?php _e('will not be published', 'cvtx'); ?>)<br/>
-       <input type="text" id="cvtx_antrag_email" name="cvtx_antrag_email" class="required" value="<?php echo($cvtx_antrag_email); ?>" size="70" /><br/>
-      </div>
-      <div class="form-item">
-       <label for="cvtx_antrag_phone"><?php _e('Mobile number', 'cvtx'); ?>: <?php echo (isset($options['cvtx_phone_required']) ? '<span class="form-required" title="'.__('This field is mandatory', 'cvtx').'">*</span></label> ('.__('will not be published', 'cvtx').')' : '</label>'); ?> <br/>
-       <input type="text" id="cvtx_antrag_phone" name="cvtx_antrag_phone" <?php echo (isset($options['cvtx_phone_required']) ? 'class="required"' : ''); ?> value="<?php echo($cvtx_antrag_phone); ?>" size="70" /><br/>
-      </div>
-      <?php
-      if (!empty($options['cvtx_privacy_message'])) { ?>
-          <p class="form-item"><small><?php echo($options['cvtx_privacy_message']); ?></small></p>
-      <?php } ?>
-      <br />
-     </fieldset>
+        <fieldset class="fieldset">
+            <div class="legend"><h3><?php _e('Author(s)', 'cvtx'); ?></h3></div>
+            <div class="form-item">
+                <label for="cvtx_antrag_steller"><?php _e('Author(s)', 'cvtx'); ?>: <span class="form-required" title="<?php _e('This field is mandatory', 'cvtx'); ?>">*</span></label><br/>
+                <textarea id="cvtx_antrag_steller" name="cvtx_antrag_steller" class="required" size="100%" cols="60" rows="5" /><?php echo($cvtx_antrag_steller); ?></textarea><br/>
+            </div>
+            <div class="form-item">
+                <label for="cvtx_antrag_email"><?php _e('E-mail address', 'cvtx'); ?>: <span class="form-required" title="<?php _e('This field is mandatory', 'cvtx'); ?>">*</span></label> (<?php _e('will not be published', 'cvtx'); ?>)<br/>
+                <input type="text" id="cvtx_antrag_email" name="cvtx_antrag_email" class="required" value="<?php echo($cvtx_antrag_email); ?>" size="70" /><br/>
+            </div>
+            <div class="form-item">
+                <label for="cvtx_antrag_phone"><?php _e('Mobile number', 'cvtx'); ?>: <?php echo (isset($options['cvtx_phone_required']) ? '<span class="form-required" title="'.__('This field is mandatory', 'cvtx').'">*</span></label> ('.__('will not be published', 'cvtx').')' : '</label>'); ?> <br/>
+                <input type="text" id="cvtx_antrag_phone" name="cvtx_antrag_phone" <?php echo (isset($options['cvtx_phone_required']) ? 'class="required"' : ''); ?> value="<?php echo($cvtx_antrag_phone); ?>" size="70" /><br/>
+            </div>
+            <?php if (!empty($options['cvtx_privacy_message'])): ?>
+                <p class="form-item"><small><?php echo($options['cvtx_privacy_message']); ?></small></p>
+            <?php endif; ?>
+            <br />
+        </fieldset>
      
-     <fieldset class="fieldset">
-      <div class="legend"><h3><?php _e('Text', 'cvtx'); ?></h3></div>
-      <div class="form-item">
-       <label for="cvtx_antrag_text"><?php _e('Text', 'cvtx'); ?>: <span class="form-required" title="<?php _e('This field is mandatory', 'cvtx'); ?>">*</span></label><br/>
-       <?php
-       if (is_plugin_active('html-purified/html-purified.php')) {
-           wp_editor($cvtx_antrag_text, 'cvtx_antrag_text', array('media_buttons' => false,
-                                                                  'textarea_name' => 'cvtx_antrag_text',
-                                                                  'tinymce'       => cvtx_tinymce_settings(),
-                                                                  'quicktags'     => false,
-                                                                  'teeny'         => false));
-       } else { ?>
-           <textarea id="cvtx_antrag_text" name="cvtx_antrag_text" class="required tinymce_data" size="100%" cols="60" rows="20" /><?php echo($cvtx_antrag_text); ?></textarea><br/>
-       <?php } ?>
-      </div>
-      <div class="form-item">
-       <label for="cvtx_antrag_grund"><?php _e('Explanation', 'cvtx'); ?>:</label><br/>
-       <?php
-       if (is_plugin_active('html-purified/html-purified.php')) {
-           wp_editor($cvtx_antrag_grund, 'cvtx_antrag_grund', array('media_buttons' => false,
-                                                                    'textarea_name' => 'cvtx_antrag_grund',
-                                                                    'tinymce'       => cvtx_tinymce_settings(),
-                                                                    'quicktags'     => false,
-                                                                    'teeny'         => false));
-       } else { ?>
-       <textarea id="cvtx_antrag_grund" name="cvtx_antrag_grund" size="100%" cols="60" rows="10" /><?php echo($cvtx_antrag_grund); ?></textarea><br/>
-       <?php } ?>
-      </div><br/>
-     </fieldset>
+        <fieldset class="fieldset">
+            <div class="legend"><h3><?php _e('Text', 'cvtx'); ?></h3></div>
+            <div class="form-item">
+                <label for="cvtx_antrag_text"><?php _e('Text', 'cvtx'); ?>: <span class="form-required" title="<?php _e('This field is mandatory', 'cvtx'); ?>">*</span></label><br/>
+                <?php if (is_plugin_active('html-purified/html-purified.php')): ?>
+                    <?php wp_editor($cvtx_antrag_text, 'cvtx_antrag_text', array('media_buttons' => false,
+                                                                                 'textarea_name' => 'cvtx_antrag_text',
+                                                                                 'tinymce'       => cvtx_tinymce_settings(),
+                                                                                 'quicktags'     => false,
+                                                                                 'teeny'         => false)); ?>
+                <?php else: ?>
+                    <textarea id="cvtx_antrag_text" name="cvtx_antrag_text" class="required tinymce_data" size="100%" cols="60" rows="20" /><?php echo($cvtx_antrag_text); ?></textarea><br/>
+                <?php endif; ?>
+            </div>
+            <div class="form-item">
+                <label for="cvtx_antrag_grund"><?php _e('Explanation', 'cvtx'); ?>:</label><br/>
+                <?php if (is_plugin_active('html-purified/html-purified.php')): ?>
+                    <?php wp_editor($cvtx_antrag_grund, 'cvtx_antrag_grund', array('media_buttons' => false,
+                                                                                   'textarea_name' => 'cvtx_antrag_grund',
+                                                                                   'tinymce'       => cvtx_tinymce_settings(),
+                                                                                   'quicktags'     => false,
+                                                                                   'teeny'         => false)); ?>
+                <?php else: ?>
+                    <textarea id="cvtx_antrag_grund" name="cvtx_antrag_grund" size="100%" cols="60" rows="10" /><?php echo($cvtx_antrag_grund); ?></textarea><br/>
+                <?php endif; ?>
+            </div><br/>
+        </fieldset>
      
-     <fieldset class="fieldset">
-      <div class="legend"><h3><?php _e('Submit', 'cvtx'); ?></h3></div>
-      <?php
-      // embed reCaptcha
-      if (is_plugin_active('wp-recaptcha/wp-recaptcha.php') && $show_recaptcha) {
-              $ropt = get_option('recaptcha_options');
-      ?>
-          <div class="form-item">
-           <?php echo(recaptcha_get_html($ropt['public_key'])); ?>
-          </div>
-      <?php } ?>
-      <div class="form-item">
-       <input type="submit" id="cvtx_antrag_submit" class="submit" value="<?php _e('Submit resolution', 'cvtx'); ?>">
-      </div></br>
-     </fieldset>
+        <fieldset class="fieldset">
+            <div class="legend"><h3><?php _e('Submit', 'cvtx'); ?></h3></div>
+            <?php // embed reCaptcha
+            if (is_plugin_active('wp-recaptcha/wp-recaptcha.php') && $show_recaptcha) {
+                $ropt = get_option('recaptcha_options'); ?>
+                <div class="form-item">
+                    <?php echo(recaptcha_get_html($ropt['public_key'])); ?>
+                </div>
+            <?php } ?>
+            <div class="form-item">
+                <input type="submit" id="cvtx_antrag_submit" class="submit" value="<?php _e('Submit resolution', 'cvtx'); ?>">
+            </div></br>
+        </fieldset>
     </form>
     <?php
 }
@@ -202,13 +213,15 @@ function cvtx_create_antrag_form($cvtx_antrag_top = 0,  $cvtx_antrag_title = '',
  */
 function cvtx_submit_antrag($show_recaptcha = true) {
     // Request Variables, if already submitted, set corresponding variables to '' else
-    $cvtx_antrag_title   = (!empty($_POST['cvtx_antrag_title'])   ? trim($_POST['cvtx_antrag_title'])   : '');
-    $cvtx_antrag_steller = (!empty($_POST['cvtx_antrag_steller']) ? trim($_POST['cvtx_antrag_steller']) : '');
-    $cvtx_antrag_email   = (!empty($_POST['cvtx_antrag_email'])   ? trim($_POST['cvtx_antrag_email'])   : '');
-    $cvtx_antrag_phone   = (!empty($_POST['cvtx_antrag_phone'])   ? trim($_POST['cvtx_antrag_phone'])   : '');
-    $cvtx_antrag_top     = (!empty($_POST['cvtx_antrag_top'])     ? trim($_POST['cvtx_antrag_top'])     : '');
-    $cvtx_antrag_text    = (!empty($_POST['cvtx_antrag_text'])    ? trim($_POST['cvtx_antrag_text'])    : '');
-    $cvtx_antrag_grund   = (!empty($_POST['cvtx_antrag_grund'])   ? trim($_POST['cvtx_antrag_grund'])   : '');
+    $cvtx_antrag_title        = (!empty($_POST['cvtx_antrag_title'])        ? trim($_POST['cvtx_antrag_title'])        : '');
+    $cvtx_antrag_steller      = (!empty($_POST['cvtx_antrag_steller'])      ? trim($_POST['cvtx_antrag_steller'])      : '');
+    $cvtx_antrag_email        = (!empty($_POST['cvtx_antrag_email'])        ? trim($_POST['cvtx_antrag_email'])        : '');
+    $cvtx_antrag_phone        = (!empty($_POST['cvtx_antrag_phone'])        ? trim($_POST['cvtx_antrag_phone'])        : '');
+    $cvtx_antrag_top          = (!empty($_POST['cvtx_antrag_top'])          ? trim($_POST['cvtx_antrag_top'])          : '');
+    $cvtx_antrag_text         = (!empty($_POST['cvtx_antrag_text'])         ? trim($_POST['cvtx_antrag_text'])         : '');
+    $cvtx_antrag_grund        = (!empty($_POST['cvtx_antrag_grund'])        ? trim($_POST['cvtx_antrag_grund'])        : '');
+    $cvtx_antrag_source       = (!empty($_POST['cvtx_antrag_source'])       ? trim($_POST['cvtx_antrag_source'])       : '');
+    $cvtx_antrag_source_date  = (!empty($_POST['cvtx_antrag_source_date'])  ? trim($_POST['cvtx_antrag_source_date'])  : '');
     $options = get_option('cvtx_options');
 
     // Check whether the form has been submitted and the wp_nonce for security reasons
@@ -226,7 +239,8 @@ function cvtx_submit_antrag($show_recaptcha = true) {
         }
         if (!is_plugin_active('wp-recaptcha/wp-recaptcha.php') || $resp->is_valid) {
             // check whether the required fields have been submitted
-            if(!empty($cvtx_antrag_title) && !empty($cvtx_antrag_text) && !empty($cvtx_antrag_steller) && !empty($cvtx_antrag_email)) {
+            if(!empty($cvtx_antrag_title) && !empty($cvtx_antrag_text) && !empty($cvtx_antrag_steller) && !empty($cvtx_antrag_email) && 
+            (!(isset($options['cvtx_antrag_source']) && is_array($options['cvtx_antrag_source']) && !empty($options['cvtx_antrag_source']) && $options['cvtx_antrag_source'][0] == true) || (!empty($cvtx_antrag_source) && !empty($cvtx_antrag_source_date)))) {
                 // Apply content filters
                 $cvtx_antrag_text  = apply_filters('the_content', $cvtx_antrag_text);
                 $cvtx_antrag_grund = apply_filters('the_content', $cvtx_antrag_grund);
@@ -240,6 +254,8 @@ function cvtx_submit_antrag($show_recaptcha = true) {
                     'cvtx_antrag_phone'   => $cvtx_antrag_phone,
                     'cvtx_antrag_top'     => $cvtx_antrag_top,
                     'cvtx_antrag_grund'   => $cvtx_antrag_grund,
+                    'cvtx_antrag_source'  => $cvtx_antrag_source,
+                    'cvtx_antrag_source_date' => $cvtx_antrag_source_date,
                     'post_status'         => 'pending',
                     'post_author'         => $options['cvtx_anon_user'],
                     'post_type'           => 'cvtx_antrag');
@@ -254,6 +270,8 @@ function cvtx_submit_antrag($show_recaptcha = true) {
             }
             // return error-message because some required fields have not been submitted
             else {
+                print_r($cvtx_antrag_source);
+                print_r($cvtx_antrag_source_date);
                 echo('<p id="message" class="error">'.__('The amendment could not be saved because some mandatory fields '
                     .'(marked by <span class="form-required" title="This field is mandatory">*</span>) are empty.', 'cvtx'));
             }
@@ -263,7 +281,7 @@ function cvtx_submit_antrag($show_recaptcha = true) {
     // nothing has been submitted yet -> include creation form
     if (!isset($erstellt)) {
         cvtx_create_antrag_form($cvtx_antrag_top, $cvtx_antrag_title, $cvtx_antrag_text, $cvtx_antrag_steller,
-                                $cvtx_antrag_email, $cvtx_antrag_phone, $cvtx_antrag_grund, $show_recaptcha);
+                                $cvtx_antrag_email, $cvtx_antrag_phone, $cvtx_antrag_grund, $cvtx_antrag_source, $cvtx_antrag_source_date, $show_recaptcha);
     }
 }
 
@@ -493,6 +511,7 @@ function cvtx_create_application_form($cvtx_application_prename,
                 <label for="cvtx_application_birthdate"><?php _e('Date of Birth', 'cvtx'); ?>: <span class="form-required" title="'.__('This field is mandatory', 'cvtx').'">*</span></label>
                 <input type="text" id="cvtx_application_birthdate" name="cvtx_application_birthdate" class="required date" value="<?php echo($cvtx_application_birthdate); ?>" size="70" /><br/>
             </div>
+            <?php if(isset($options['cvtx_application_gender_check']) && $options['cvtx_application_gender_check']): ?>
             <div class="form-item">
                 <label for="cvtx_application_gender"><?php _e('Gender', 'cvtx'); ?>:</label>
                 <select name="cvtx_application_gender" id="cvtx_application_gender">
@@ -501,6 +520,7 @@ function cvtx_create_application_form($cvtx_application_prename,
                     <option value="3" <?php echo ($cvtx_application_gender == 3 ? 'selected="selected"' : '') ?>><?php _e('not specified', 'cvtx'); ?></option>
                 </select>
             </div>
+            <?php endif; ?>
             <div class="form-item">
                 <label for="cvtx_application_topics"><?php _e('Your main topics (please select 2 topics at max)', 'cvtx');?>: </label>
                 <select name="cvtx_application_topics[]" id="cvtx_application_topics" multiple="multiple">

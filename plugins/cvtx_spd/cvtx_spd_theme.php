@@ -273,8 +273,8 @@ function cvtx_spd_aenderungsantraege_list_action($post_id = false) {
 }
 
 remove_action('cvtx_theme_poll', 'cvtx_theme_poll_action', 10, 1);
-add_action('cvtx_theme_poll', 'cvtx_poll_action', 10, 2);
-function cvtx_poll_action($post_id = false, $naked = false) {
+add_action('cvtx_theme_poll', 'cvtx_spd_poll_action', 10, 2);
+function cvtx_spd_poll_action($post_id = false, $naked = false) {
   if(!(isset($post_id) || !$post_id)) global $post;
   else $post = get_post($post_id);
   

@@ -29,8 +29,8 @@
             <li><h4></h4>
                 <ul>
                     <li>
-                        <a target="_blank" href="https://twitter.com/spdberlin"><img src="/images/twitter.png"></a> <a target="_blank" href="http://www.facebook.com/SPD.Berlin"><img src="/images/facebook.png"></a>
-                        <a target="_blank" href="http://www.youtube.com/spdberlin"><img src="/images/youtube.png"></a> <a target="_blank" href="http://spd-landesparteitag.de/feed/?post_type=cvtx_antrag"><img src="/images/rss.png"></a>
+                        <a target="_blank" href="https://twitter.com/spdberlin"><img src="<?php bloginfo('template_url'); ?>/images/twitter.png"></a> <a target="_blank" href="http://www.facebook.com/SPD.Berlin"><img src="<?php bloginfo('template_url'); ?>/images/facebook.png"></a>
+                        <a target="_blank" href="http://www.youtube.com/spdberlin"><img src="<?php bloginfo('template_url'); ?>/images/youtube.png"></a> <a target="_blank" href="http://spd-landesparteitag.de/feed/?post_type=cvtx_antrag"><img src="<?php bloginfo('template_url'); ?>/images/rss.png"></a>
                     </li> 
 	            </ul>
             </li>

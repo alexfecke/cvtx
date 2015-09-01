@@ -217,7 +217,7 @@ function cvtx_spd_register_sortable_aeantrag($columns) {
 }
 
 if (is_admin()) add_action('manage_posts_custom_column', 'cvtx_spd_format_lists');
-function cvtx_format_lists($column) {
+function cvtx_spd_format_lists($column) {
     global $post;
     switch ($column) {
         case 'cvtx_reader_type':
@@ -338,7 +338,11 @@ function cvtx_spd_admin_page() {
     add_options_page('cvtx SPD Page', __('cvtx Agenda Plugin SPD', 'cvtx_spd'), 'manage_options', 'cvtx_spd_config', 'cvtx_spd_options_page');
 }
 
-function cvtx_options_page() {
+function cvtx_spd_config_main_text() {
+    echo('<p>'.__('SPD settings for cvtx.','cvtx').'</p>');
+}
+
+function cvtx_spd_options_page() {
     echo('<div>');
     echo('<h2>'.__('cvtx Agenda Plugin SPD','cvtx').'</h2>');
     echo('<form action="options.php" method="post">');
@@ -351,6 +355,7 @@ function cvtx_options_page() {
 add_action('admin_init', 'cvtx_spd_admin_init');
 function cvtx_spd_admin_init(){
     register_setting('cvtx_spd_options', 'cvtx_spd_options', 'cvtx_spd_options_validate');
+    add_settings_section('cvtx_spd_main', __('SPD Settings','cvtx'), 'cvtx_spd_config_main_text', 'cvtx_spd_config');
     add_settings_field('cvtx_spd_pdf_columns', __('Zahl der Spalten im PDF', 'cvtx'), 'cvtx_spd_pdf_columns', 'cvtx_spd_config', 'cvtx_spd_main');
     add_settings_field('cvtx_spd_antrag_recipients_setting', __('Adressaten für Anträge', 'cvtx'), 'cvtx_spd_antrag_recipients_setting', 'cvtx_spd_config', 'cvtx_spd_main');
 }
