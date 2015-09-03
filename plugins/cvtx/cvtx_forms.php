@@ -527,7 +527,7 @@ function cvtx_create_application_form($cvtx_application_prename,
             </div>
             <?php endif; ?>
             <div class="form-item">
-                <label for="cvtx_application_topics"><?php _e('Your main topics (please select 2 topics at max)', 'cvtx');?>: </label>
+                <label for="cvtx_application_topics"><?php _e('Themenschwerpunkte (bitte maximal 2 auswählen, um mehrere auszuwählen, STRG gedrückt halten)', 'cvtx');?>: </label>
                 <select name="cvtx_application_topics[]" id="cvtx_application_topics" multiple="multiple">
                     <?php
                     $topics = $options['cvtx_application_topics'];
