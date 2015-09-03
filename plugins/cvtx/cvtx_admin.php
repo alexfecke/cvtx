@@ -271,7 +271,7 @@ function cvtx_reader_contents($post, $args, $event_id = null) {
       AND cvtxsort.meta_key = 'cvtx_sort'
     WHERE (p2.meta_value IN (%d, '-1') OR p3.meta_value IN (%d, '-1'))
     ORDER BY cvtxsort.meta_value ASC", $event_id, $event_id));
-    
+
     if (!empty($ids)) {
         $open_top    = false;
         $open_antrag = false;
@@ -448,7 +448,7 @@ function cvtx_antrag_grund() {
         array('media_buttons' => false,
               'textarea_name' => 'cvtx_antrag_grund',
               'tinymce'       => cvtx_tinymce_settings(),
-              'quicktags'     => false,
+              'quicktags'     => true,
               'teeny'         => false));
     } else {
         echo('<textarea style="width: 100%" for="cvtx_antrag_grund" name="cvtx_antrag_grund">'.get_post_meta($post->ID, 'cvtx_antrag_grund', true).'</textarea>');
@@ -499,7 +499,7 @@ function cvtx_aeantrag_grund() {
         array('media_buttons' => false,
               'textarea_name' => 'cvtx_aeantrag_grund',
               'tinymce'       => cvtx_tinymce_settings(),
-              'quicktags'     => false,
+              'quicktags'     => true,
               'teeny'         => false));
     } else {
         echo('<textarea style="width: 100%" for="cvtx_aeantrag_grund" name="cvtx_aeantrag_grund">'.get_post_meta($post->ID, 'cvtx_aeantrag_grund', true).'</textarea>');
@@ -529,7 +529,7 @@ function cvtx_aeantrag_verfahren() {
         array('media_buttons' => false,
               'textarea_name' => 'cvtx_aeantrag_detail',
               'tinymce'       => cvtx_tinymce_settings(),
-              'quicktags'     => false,
+              'quicktags'     => true,
               'teeny'         => false));
     } else {
         echo('<textarea style="width: 100%" for="cvtx_aeantrag_detail" name="cvtx_aeantrag_detail">'.get_post_meta($post->ID, 'cvtx_aeantrag_detail', true).'</textarea>');
@@ -565,6 +565,10 @@ function cvtx_application_meta() {
     global $post;
     $top_id = get_post_meta($post->ID, 'cvtx_application_top', true);    
     
+    $event_id = get_post_meta($post->ID, 'cvtx_application_event', false);
+    echo('<label for="cvtx_application_event_select">'.__('Event', 'cvtx').':</label><br />');
+    echo(cvtx_dropdown_events($event_id, $post->post_type, __('No events available.', 'cvtx'), true));
+    echo('<br />');
     echo('<label for="cvtx_antrag_top_select">'.__('Agenda point', 'cvtx').':</label><br />');
     echo(cvtx_dropdown_tops($top_id, __('No agenda points enabled to applications.', 'cvtx').'.', '', true));
     echo('<br />');
@@ -600,13 +604,15 @@ function cvtx_application_form_name() {
     echo(' <input type="text" id="cvtx_application_birthdate" name="cvtx_application_birthdate" value="'.get_post_meta($post->ID, 'cvtx_application_birthdate', true).'" /><br />');
     echo('<label for="cvtx_application_mail">'.__('e-mail address', 'cvtx').':</label>');
     echo(' <input type="text" id="cvtx_application_mail" name="cvtx_application_mail" value="'.get_post_meta($post->ID, 'cvtx_application_mail', true).'" /><br />');
+    echo('<label for="cvtx_application_email_public">'.__('publish e-mail address', 'cvtx').':</label>');
+    echo(' <input type="checkbox" id="cvtx_application_email_public" name="cvtx_application_email_public" '.(get_post_meta($post->ID, 'cvtx_application_email_public', true) == "on" ? ' checked="checked"' : '').'" /><br />');
     echo('<label for="cvtx_application_gender">'.__('Gender', 'cvtx').': </label>');
     echo('<select name="cvtx_application_gender" id="cvtx_application_gender">');
         echo('<option value="1" '.(get_post_meta($post->ID, 'cvtx_application_gender', true) == 1 ? 'selected="selected"' : '') .'>'.__('female', 'cvtx').'</option>');
         echo('<option value="2" '.(get_post_meta($post->ID, 'cvtx_application_gender', true) == 2 ? 'selected="selected"' : '') .'>'.__('male', 'cvtx').'</option>');
         echo('<option value="3" '.(get_post_meta($post->ID, 'cvtx_application_gender', true) == 3 ? 'selected="selected"' : '') .'>'.__('not specified', 'cvtx').'</option>');
     echo('</select><br/>');
-    echo('<label for="cvtx_application_topics">'.__('Main topics (please select 2 topics at max)', 'cvtx').': </label>');
+    echo('<label for="cvtx_application_topics">'.__('Main topics (please select 2 topics at max, hold STRG pressed while selecting multiple options)', 'cvtx').': </label>');
     echo('<select name="cvtx_application_topics[]" id="cvtx_application_topics" multiple="multiple">');
         $topics = $options['cvtx_application_topics'];
         for($i = 0; $i < count($topics); $i++) {
@@ -679,7 +685,7 @@ function cvtx_application_form_cv() {
       	array('media_buttons' => false,
               'textarea_name' => 'cvtx_application_cv',
               'tinymce'       => cvtx_tinymce_settings(),
-              'quicktags'     => false,
+              'quicktags'     => true,
               'teeny'         => false));
     } else {
 	    echo('<textarea style="width: 100%" for="cvtx_application_cv" name="cvtx_application_cv">'.get_post_meta($post->ID, 'cvtx_application_cv', true).'</textarea>');

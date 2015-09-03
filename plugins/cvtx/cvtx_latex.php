@@ -17,14 +17,19 @@ function cvtx_get_latex($out, $strip_nl = false) {
     
     // strip html entities
     $out = html_entity_decode($out, ENT_QUOTES, 'UTF-8');
-/*    $out = str_replace(array('&nbsp;', '&amp;', '&#8211;', '&ndash;', '&mdash;', '&#8212;'),
-                       array(' ', '&', '–', '–', '—', '—'), $out);*/
+    $out = str_replace(array('&nbsp;', '&amp;', '&#8211;', '&ndash;', '&mdash;'),
+                       array(' ', '&', '–', '–', '—', '—'), $out);
     
     // recode special chars
     $tmp = time().'\\textbackslash'.rand();
     $out = str_replace('\\', $tmp, $out);
+    // replace thin space
+    error_log(utf8_encode($out));
+    $out = utf8_decode(str_replace(array('\xe2\x80\x89', '\u2009', '&#8212;', '&#8201;', '&thinsp;', '&#8239;', '&#x202f;', '&#2009;'),
+                       array('\thinspace', '\thinspace', '\thinspace', '\thinspace', '\thinspace', '\thinspace', '\thinspace', '\thinspace'), utf8_encode($out)));
+
     $out = str_replace(array('$', '%', '_', '{', '}', '&', '#', '–', '—', '€'),
-                       array('\\$', '\\%', '\\_', '\\{', '\\}', '\\&', '\\#', '--', '---', '{\euro}'), $out);
+                       array('\\$', '\\%', '\\_', '\\{', '\\}', '\\&', '\\#', '\textendash\ ', '---', '{\euro}'), $out);
     $out = str_replace($tmp, '{\\textbackslash}', $out);
     
     // recode formatting rules
@@ -115,7 +120,7 @@ function cvtx_beschreibung($strip_nl = false, $event_id = false) {
     if(isset($post) && is_object($post) && !$event_id) {
         $event_id = get_post_meta($post->ID, $post->post_type.'_event');
     }
-    if($event_id) {
+    if($event_id && $event_id != '-1' && !(is_array($event_id) && $event_id[0] == '-1')) {
         $event = get_post((is_array($event_id) ? array_pop($event_id) : $event_id));
         echo(cvtx_get_latex($event->post_title));
         return;
@@ -405,6 +410,16 @@ function cvtx_application_website($post) {
         if(!empty($website)) {
             echo('\textbf{'.__('Website','cvtx').':}\newline ');
             echo('\url{'.$website.'}');
+        }
+    }
+}
+
+function cvtx_application_mail($post) {
+    if($post->post_type == 'cvtx_application') {
+        $mail = get_post_meta($post->ID, 'cvtx_application_mail', true);
+        if(!empty($mail) && get_post_meta($post->ID, 'cvtx_application_email_public', true) == 'on') {
+            echo('\textbf{'.__('E-Mail','cvtx').':}\newline ');
+            echo('\href{mailto:'.$mail.'}{'.$mail.'}');
         }
     }
 }

@@ -12,7 +12,10 @@ add_action('widgets_init', create_function('', 'register_widget("ReaderWidget");
 class ReaderWidget extends WP_Widget {
     /** constructor */
     function __construct() {
-        parent::WP_Widget('ReaderWidget', __('Reader list', 'cvtx'), array('description' => __('Show list of published readers.', 'cvtx')));
+        parent::__construct(
+            'ReaderWidget',
+            __('Reader list', 'cvtx'), 
+            array('description' => __('Show list of published readers.', 'cvtx')));
     }
     
     /** @see WP_Widget::widget */
@@ -89,7 +92,7 @@ add_action('widgets_init', create_function('', 'register_widget("ReaderEventWidg
 class ReaderEventWidget extends WP_Widget {
     /** constructor */
     function __construct() {
-        parent::WP_Widget('ReaderEventWidget', __('Reader event list', 'cvtx'), array('description' => __('Show list of published readers for current event.', 'cvtx')));
+        parent::__construct('ReaderEventWidget', __('Reader event list', 'cvtx'), array('description' => __('Show list of published readers for current event.', 'cvtx')));
     }
     
     /** @see WP_Widget::widget */
@@ -176,7 +179,7 @@ add_action('widgets_init', create_function('', 'register_widget("EventWidget");'
 class EventWidget extends WP_Widget {
     /** constructor */
     function __construct() {
-        parent::WP_Widget('EventWidget', __('Event list', 'cvtx'), array('description' => __('Show list of published events (except the current one).', 'cvtx')));
+        parent::__construct('EventWidget', __('Event list', 'cvtx'), array('description' => __('Show list of published events (except the current one).', 'cvtx')));
     }
     
     /** @see WP_Widget::widget */
@@ -253,7 +256,7 @@ add_action('widgets_init', create_function('', 'register_widget("CountWidget");'
  */
 class CountWidget extends WP_Widget {
     function __construct() {
-        parent::WP_Widget('CountWidget', __('Statistics', 'cvtx'), array('description' => __('List with total count of published resolutions, amendments and applications.', 'cvtx')));
+        parent::__construct('CountWidget', __('Statistics', 'cvtx'), array('description' => __('List with total count of published resolutions, amendments and applications.', 'cvtx')));
     }
     
     function widget($args,$instance) {
@@ -302,7 +305,7 @@ add_action('widgets_init', create_function('', 'register_widget("RSS_aeantrag_Wi
  */
 class RSS_aeantrag_Widget extends WP_Widget {
     function __construct() {
-        parent::WP_Widget('RSS_aeantrag_Widget', __('RSS feed for amendments', 'cvtx'), array('description' => __('Offers a link to the RSS-Feed for new amendments to specific resolution.', 'cvtx')));
+        parent::__construct('RSS_aeantrag_Widget', __('RSS feed for amendments', 'cvtx'), array('description' => __('Offers a link to the RSS-Feed for new amendments to specific resolution.', 'cvtx')));
     }
     
     function widget($args, $instance) {

@@ -49,6 +49,7 @@ $cvtx_types = array('cvtx_reader'   => array('cvtx_reader_style',
                                              'cvtx_top_event'),
                     'cvtx_antrag'   => array('cvtx_antrag_ord',
                                              'cvtx_sort',
+                                             'cvtx_antrag_event',
                                              'cvtx_antrag_top',
                                              'cvtx_antrag_steller',
                                              'cvtx_antrag_steller_short',
@@ -73,9 +74,11 @@ $cvtx_types = array('cvtx_reader'   => array('cvtx_reader_style',
                                              'cvtx_aeantrag_info'),
                  'cvtx_application' => array('cvtx_application_ord',
                                              'cvtx_sort',
+                                             'cvtx_application_event',
                                              'cvtx_application_manually',
                                              'cvtx_application_top',
                                              'cvtx_application_email',
+                                             'cvtx_application_email_public',
                                              'cvtx_application_phone',
                                              'cvtx_application_prename',
                                              'cvtx_application_surname',
@@ -379,6 +382,9 @@ function cvtx_insert_post($post_id, $post = null) {
                 $cvtx_top_appendix = get_post_meta($post_id, 'cvtx_top_appendix', true);
                 $_POST['cvtx_top_appendix'] = (is_string($cvtx_top_appendix) && !empty($cvtx_top_appendix) ? $cvtx_top_appendix : 'off');
             }
+            if (!isset($_POST['cvtx_top_event'])) {
+                $_POST['cvtx_top_event'] = '-1';
+            }
         }
         // update / insert event
         if($post->post_type == 'cvtx_event') {
@@ -399,6 +405,10 @@ function cvtx_insert_post($post_id, $post = null) {
 
             // get globally sortable string
             $_POST['cvtx_sort'] = cvtx_get_sort('cvtx_antrag', $data = array('top' => $top_ord, 'subject' => $antrag_ord, 'year' => $event_year, 'event' => $event_nr));
+            
+            if (!isset($_POST['cvtx_antrag_event'])) {
+                $_POST['cvtx_antrag_event'] = '-1';
+            }
             
             // generate short antragsteller if field is empty
             if (!isset($_POST['cvtx_antrag_steller_short']) || empty($_POST['cvtx_antrag_steller_short'])) {
@@ -450,7 +460,7 @@ function cvtx_insert_post($post_id, $post = null) {
             if (!term_exists('cvtx_reader_'.$post_id, 'cvtx_tax_reader')) {
                 wp_insert_term('cvtx_reader_'.$post_id, 'cvtx_tax_reader');
             }
-            
+
             // get all previously selected posts for this reader term
             $old   = array();
             $query = new WP_Query(array('post_type' => array('cvtx_antrag',
@@ -550,7 +560,7 @@ function cvtx_insert_post($post_id, $post = null) {
             }
         }
         // Update/insert application
-        else if ($post->post_type == 'cvtx_application' && isset($_POST['cvtx_application_top'])) {
+        else if ($post->post_type == 'cvtx_application') {
             // get top and validate data
             $top_ord  = get_post_meta($_POST['cvtx_application_top'], 'cvtx_top_ord', true);
             $appl_ord = (isset($_POST['cvtx_application_ord']) ? $_POST['cvtx_application_ord'] : 0);
@@ -558,9 +568,17 @@ function cvtx_insert_post($post_id, $post = null) {
             // get globally sortable string
             $_POST['cvtx_sort'] = cvtx_get_sort('cvtx_application', $data = array('top' => $top_ord, 'subject' => $appl_ord));
             
+            // check whether or not the email will be published
+            if (!isset($_POST['cvtx_application_email_public']) || $_POST['cvtx_application_email_public'] == false) {
+                $_POST['cvtx_application_email_public'] = 'off';
+            }
+            if (!isset($_POST['cvtx_application_event'])) {
+                $_POST['cvtx_application_event'] = '-1';
+            }
+
             // check whether manually file upload enabled
             if (!isset($_POST['cvtx_application_manually'])) $_POST['cvtx_application_manually'] = 'off';
-            
+
             // get default reader terms for applications
             if(isset($options['cvtx_default_reader_application'])) {
                 $terms = $options['cvtx_default_reader_application'];
@@ -973,10 +991,10 @@ function cvtx_create_pdf($post_id, $post = null, $event_id = false) {
                                 .' -output-format=pdf '
                                 .' -output-directory='.escapeshellcmd($out_dir)
                                 .' '.escapeshellcmd($file).'.tex';
-                putenv("PATH=" .$_ENV["PATH"]. ':/usr/bin/');
+                putenv('PATH='.getenv('PATH').':/usr/bin/:/usr/texbin/');   
 
                 // run pdflatex
-                exec($cmd);
+                shell_exec($cmd);
                 
                 // if reader is generated: run it twice to build toc and pagewise linenumbers.
                 if (property_exists($post, 'slug') || $post->post_type == 'cvtx_reader' || $post->post_type == 'cvtx_antrag') {

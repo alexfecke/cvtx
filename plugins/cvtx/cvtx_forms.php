@@ -462,6 +462,7 @@ function cvtx_create_application_form($cvtx_application_prename,
                                       $cvtx_application_text,
                                       $cvtx_application_cv,
                                       $cvtx_application_mail,
+                                      $cvtx_application_email_public,
                                       $cvtx_application_birthdate,
                                       $cvtx_application_gender,
                                       $cvtx_application_topics,
@@ -506,6 +507,10 @@ function cvtx_create_application_form($cvtx_application_prename,
             <div class="form-item">
                 <label for="cvtx_application_mail"><?php _e('e-mail address', 'cvtx'); ?>: <span class="form-required" title="'.__('This field is mandatory', 'cvtx').'">*</span></label>
                 <input type="text" id="cvtx_application_mail" name="cvtx_application_mail" class="required mail" value="<?php echo($cvtx_application_mail); ?>" size="70" /><br/>
+            </div>
+            <div class="form-item">
+                <label for="cvtx_application_email_public"><?php _e('E-Mail-Adresse veröffentlichen', 'cvtx'); ?>:</label>
+                <input type="checkbox" id="cvtx_application_email_public" name="cvtx_application_email_public" <?php echo ($cvtx_application_email_public ? 'checked="checked"' : ''); ?>/><br/>
             </div>
             <div class="form-item">
                 <label for="cvtx_application_birthdate"><?php _e('Date of Birth', 'cvtx'); ?>: <span class="form-required" title="'.__('This field is mandatory', 'cvtx').'">*</span></label>
@@ -633,6 +638,7 @@ function cvtx_submit_application($show_recaptcha = true) {
     $cvtx_application_text      = (!empty($_POST['cvtx_application_text']) ? trim($_POST['cvtx_application_text'])    : '');
     $cvtx_application_cv        = (!empty($_POST['cvtx_application_cv']) ? trim($_POST['cvtx_application_cv'])   : '');
     $cvtx_application_mail      = (!empty($_POST['cvtx_application_mail']) ? trim($_POST['cvtx_application_mail']) : '');
+    $cvtx_application_email_public = (!empty($_POST['cvtx_application_email_public']) && $_POST['cvtx_application_email_public'] && $_POST['cvtx_application_email_public'] != 'off' ? 'on' : 'off');
     $cvtx_application_birthdate = (!empty($_POST['cvtx_application_birthdate']) ? trim($_POST['cvtx_application_birthdate']) : '');
     $cvtx_application_gender    = (!empty($_POST['cvtx_application_gender']) ? trim($_POST['cvtx_application_gender']) : '');
     $cvtx_application_topics    = (!empty($_POST['cvtx_application_topics']) ? $_POST['cvtx_application_topics'] : array());
@@ -680,6 +686,7 @@ function cvtx_submit_application($show_recaptcha = true) {
                             'cvtx_application_top'     => $cvtx_application_top,
                             'cvtx_application_cv'      => $cvtx_application_cv,
                             'cvtx_application_mail'    => $cvtx_application_mail,
+                            'cvtx_application_email_public' => $cvtx_application_email_public,
                             'cvtx_application_birthdate' => $cvtx_application_birthdate,
                             'cvtx_application_gender'  => $cvtx_application_gender,
                             'cvtx_application_topics'  => $cvtx_application_topics,
@@ -720,7 +727,7 @@ function cvtx_submit_application($show_recaptcha = true) {
     if (!isset($erstellt)) {
         cvtx_create_application_form($cvtx_application_prename,$cvtx_application_surname,$cvtx_application_photo,
                                      $cvtx_application_top,$cvtx_application_text,$cvtx_application_cv,
-                                     $cvtx_application_mail,$cvtx_application_birthdate,$cvtx_application_gender,
+                                     $cvtx_application_mail,$cvtx_application_email_public,$cvtx_application_birthdate,$cvtx_application_gender,
                                      $cvtx_application_topics,$cvtx_application_kv,$cvtx_application_bv,
                                      $cvtx_application_website,$show_recaptcha);
     }

@@ -57,6 +57,7 @@
     <?php if (!empty($options['cvtx_application_bvs_name'])) { cvtx_application_bv($post); ?>\smallskip \\ <?php } ?>
     <?php if (!empty($options['cvtx_application_topics'])) { cvtx_application_topics_latex($post); ?>\smallskip \\ <?php } ?>
     <?php cvtx_application_website($post); ?>
+    <?php cvtx_application_mail($post); ?>
     \end{tabularx}}
 \end{floatingtable}
 
