@@ -52,7 +52,9 @@
 \begin{floatingtable}[r]{
     \begin{tabularx}{4.5cm}{X}
     \includegraphics[width=4.1cm,keepaspectratio]{<?php cvtx_application_photo($post); ?>}\\
+    <?php if(isset($options['cvtx_application_gender_check']) && $options['cvtx_application_gender_check']): ?>
     <?php cvtx_application_gender($post); ?>\smallskip \\
+    <?php endif; ?>
     <?php cvtx_application_birthdate($post); ?>\smallskip \\<?php if (!empty($options['cvtx_application_kvs_name'])) { cvtx_application_kv($post); ?>\smallskip \\ <?php } ?>
     <?php if (!empty($options['cvtx_application_bvs_name'])) { cvtx_application_bv($post); ?>\smallskip \\ <?php } ?>
     <?php if (!empty($options['cvtx_application_topics'])) { cvtx_application_topics_latex($post); ?>\smallskip \\ <?php } ?>
