@@ -876,7 +876,11 @@ function cvtx_create_pdf($post_id, $post = null, $event_id = false) {
     if (isset($post) && is_object($post) && !empty($pdflatex)) {
         $out_dir = wp_upload_dir();
         $out_dir = $out_dir['path'].'/';
-        $tpl_dir = get_template_directory().'/'.$options['cvtx_latex_tpldir'];
+        if (isset($options['cvtx_latex_tpl-plugin-dir']) && $options['cvtx_latex_tpl-plugin-dir']) {
+            $tpl_dir = $options['cvtx_latex_tpl-plugin-dir'];
+        } else {
+            $tpl_dir = get_template_directory().'/'.$options['cvtx_latex_tpldir'];
+        }
     
         // prepare antrag
         if (property_exists($post, 'post_type') && $post->post_type == 'cvtx_antrag') {

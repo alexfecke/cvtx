@@ -1,6 +1,8 @@
 \documentclass[paper=a4, 12pt, pagesize, parskip=half, DIV=calc]{scrbook}
+
+\usepackage[left=2.5cm,top=1cm,bottom=0.5cm,right=1.4cm,includeheadfoot]{geometry}
+
 \usepackage[T1]{fontenc}
-\usepackage{lmodern}
 \usepackage[utf8]{inputenc}
 <?php if (get_bloginfo('language') == 'de-DE') { ?>
     \usepackage[ngerman]{babel}
@@ -10,18 +12,51 @@
 \usepackage{fixltx2e}
 \usepackage{lineno}
 \usepackage{tabularx}
-\usepackage{scrpage2}
-\usepackage{calc}
-\usepackage{pdfpages}
-\usepackage{hyperref}
 \usepackage[normalem]{ulem}
 \usepackage[right]{eurosym}
+\usepackage{pdfpages}
+\usepackage{calc}
 \usepackage{graphicx}
 \usepackage{multirow}
 \usepackage{hyperref}
-\usepackage{floatflt}
 \usepackage[strict]{changepage}
-\DeclareUnicodeCharacter{A0}{ }
+\usepackage{scrpage2}
+
+\input{<?php echo CVTX_B90CD_PLUGIN_DIR; ?>tex/packages/insbox/insbox.tex}
+
+\usepackage{xcolor}
+\definecolor{gruen}{HTML}{46962B}
+\definecolor{dunkelgruen}{HTML}{0A321E}
+\definecolor{gelb}{HTML}{FFEE00}
+\definecolor{dunkelgelb}{HTML}{FFD500}
+\definecolor{blau}{HTML}{4CB4E7}
+\definecolor{hellblau}{HTML}{D4EDFC}
+\definecolor{magenta}{HTML}{E6007E}
+\definecolor{white}{HTML}{FFFFFF}
+
+\usepackage{fontspec}
+\newfontfamily\specialfont[%
+	ExternalLocation ,
+	UprightFont = {<?php echo CVTX_B90CD_PLUGIN_DIR; ?>tex/fonts/Arvo/Arvo-Regular_v104.ttf} ,
+	BoldFont = {<?php echo CVTX_B90CD_PLUGIN_DIR; ?>tex/fonts/Arvo/Arvo_Gruen_1004.otf} ]{Arvo}
+
+\setmainfont[%
+	ExternalLocation ,
+	UprightFont = {<?php echo CVTX_B90CD_PLUGIN_DIR; ?>tex/fonts/PT-Sans/PTS55F.ttf} ,
+	BoldFont = {<?php echo CVTX_B90CD_PLUGIN_DIR; ?>tex/fonts/PT-Sans/PTS75F.ttf} ,
+	BoldItalicFont = {<?php echo CVTX_B90CD_PLUGIN_DIR; ?>tex/fonts/PT-Sans/PTS76F.ttf} ,
+	ItalicFont = {<?php echo CVTX_B90CD_PLUGIN_DIR; ?>tex/fonts/PT-Sans/PTS56F.ttf} ]{PT-Sans}
+
+\renewcommand{\printtoctitle}[1]{\specialfont #1}
+
+\sloppy
+
+\usepackage{titlesec}
+\defaultfontfeatures{Ligatures=TeX}
+
+\titleformat{\section}[display]
+    {\specialfont\Large\bfseries}{\thesection}{0pt}{\Large\MakeUppercase}
+\titleformat*{\subsection}{\normalfont\specialfont\large}
 
 <?php $options = get_option('cvtx_options'); ?>
 
@@ -35,8 +70,8 @@
 \newcommand*\adjust{\setlength\hsize{\textwidth-2\tabcolsep}}
 
 % Document Information
-\subject{<?php cvtx_name(); ?>\\ <?php cvtx_beschreibung(); ?>}
-\title{<?php cvtx_titel($post); ?>}
+\subject{\specialfont{<?php cvtx_name(); ?>\\ <?php cvtx_beschreibung(); ?>}}
+\title{\specialfont{<?php cvtx_titel($post); ?>}}
 \date{<?php cvtx_print_latex(__('This version', 'cvtx')); ?>: \today}
 \author{}
 
@@ -48,7 +83,7 @@
 \includepdf{<?php cvtx_reader_titlepage_file($post); ?>}
 \pagestyle{empty}
 \newpage
-<?php else:
+<?php else: ?>
 % Show Title Page
 \maketitle    
 <?php endif; ?>
@@ -59,6 +94,7 @@
 <?php
 $top    = 0;
 $antrag = 0;
+$i = 0;
 $query  = new WP_Query(array('post_type'   => array('cvtx_antrag',
                                                     'cvtx_aeantrag',
                                                     'cvtx_application'),
@@ -72,6 +108,7 @@ $query  = new WP_Query(array('post_type'   => array('cvtx_antrag',
 while ($query->have_posts()) {
     $query->the_post();
     $item = get_post(get_the_ID());
+    $i++;
     
     /* Show Resolution */
     if ($item->post_type == 'cvtx_antrag') {
@@ -84,17 +121,13 @@ while ($query->have_posts()) {
 \thispagestyle{plain}
 \ohead{<?php cvtx_kuerzel($item); ?> <?php cvtx_titel($item); ?>}
 
-% Site Title and Subtitle
-\begin{flushright}
- \textbf{\large <?php cvtx_name(); ?>}\\
- <?php cvtx_beschreibung(); ?>
-\end{flushright}
-
 % Info Box
-\begin{tabularx}{\textwidth}{|lX|}
-    \hline
-                                                            &                                              \\
-    \textbf{\LARGE <?php cvtx_kuerzel($item); ?>}           &                                              \\
+\noindent\makebox[\linewidth]{\rule{\textwidth}{6pt}}
+\noindent
+\begin{tabularx}{\textwidth}{@{}lX}
+\vspace{16pt}\vspace{-15pt}
+\\
+    \textbf{\specialfont{\LARGE <?php cvtx_kuerzel($item); ?>}}           &                                              \\
                                                             &                                              \\
     <?php cvtx_print_latex(__('Author(s)', 'cvtx')); ?>:    &   <?php cvtx_antragsteller_kurz($item); ?>   \\
                                                             &                                              \\
@@ -104,8 +137,9 @@ while ($query->have_posts()) {
     <?php cvtx_print_latex(__('Remarks', 'cvtx')); ?>:      &   <?php cvtx_info($item); ?>                 \\
                                                             &                                              \\
 <?php } ?>
-    \hline
+
 \end{tabularx}
+\noindent\makebox[\linewidth]{\rule{\textwidth}{6pt}}
 
 % Resolution title
 \section*{<?php cvtx_titel($item); ?>}
@@ -176,39 +210,43 @@ while ($query->have_posts()) {
 % Define Headline Text
 \ohead{<?php cvtx_print_latex(__('Application', 'cvtx')); ?> <?php cvtx_kuerzel($item); ?> <?php cvtx_titel($item); ?>}
 
-% Site Title and Subtitle
-\begin{flushright}
- \textbf{\large <?php cvtx_name(); ?>}\\
- <?php cvtx_beschreibung(); ?>
-\end{flushright}
-
-% Info Box
-\begin{tabularx}{\textwidth}{|lX|r}
-    \cline{1-2}
-                                                            &                                           & \\
-    \textbf{\LARGE <?php cvtx_kuerzel($item); ?>}           &                                           & \\
-                                                            &                                           & \\
-    <?php cvtx_print_latex(__('Name', 'cvtx')); ?>:         &   <?php cvtx_application_name($item); ?>  & \\
-                                                            &                                           & \\
-    <?php cvtx_print_latex(__('Concerning', 'cvtx')); ?>:   &   <?php cvtx_top($item); ?>               & \\
-                                                            &                                           & \\
-    \cline{1-2}
+\noindent\makebox[\linewidth]{\rule{\textwidth}{6pt}}
+\noindent
+\begin{tabularx}{\textwidth}{@{}lX}
+\vspace{16pt}\vspace{-15pt}
+\\
+    \textbf{\specialfont{\LARGE <?php cvtx_kuerzel($item); ?>}}           &                                              \\
+                                                            &                                              \\
+    <?php cvtx_print_latex(__('Concerning', 'cvtx')); ?>:   &   <?php cvtx_top($item); ?>                  \\
+                                                            &                                              \\
 \end{tabularx}
+\noindent\makebox[\linewidth]{\rule{\textwidth}{6pt}}
 
-% application fields
-\begin{floatingtable}[r]{
-    \begin{tabularx}{4.5cm}{X}
-    \includegraphics[width=4.1cm,keepaspectratio]{<?php cvtx_application_photo($item); ?>}\\
-    <?php cvtx_application_gender($item); ?>\smallskip \\
-    <?php cvtx_application_birthdate($item); ?>\smallskip \\
-    <?php if (!empty($options['cvtx_application_kvs_name'])) { cvtx_application_kv($item); ?>\smallskip \\ <?php } ?>
-    <?php if (!empty($options['cvtx_application_bvs_name'])) { cvtx_application_bv($item); ?>\smallskip \\ <?php } ?>
-    <?php if (!empty($options['cvtx_application_topics'])) { cvtx_application_topics_latex($item); ?>\smallskip \\ <?php } ?>
-    <?php cvtx_application_website($item); ?>
-    \end{tabularx}}
-\end{floatingtable}
+\def\somebox<?php echo $i; ?>{\vbox{
+  \hsize = 5.4cm
+  \hspace{0.2cm}
+  \vbox{
+  	\hsize = 5cm
+	\vspace{-1.75cm}
+    \begin{small}\begin{flushleft}    
+    \noindent\makebox[5cm]{\color{blau}{\rule{5cm}{6pt}}} \smallskip \\
+    \vspace{1.75cm}
+    \includegraphics[width=1.5cm,keepaspectratio]{<?php cvtx_application_photo($item); ?>}\smallskip \\
+    <?php if(isset($options['cvtx_application_gender_check']) && $options['cvtx_application_gender_check']): ?>
+        <?php cvtx_application_gender($item, 'magenta'); ?>
+    <?php endif; ?>
+    <?php cvtx_application_birthdate($item, 'magenta'); ?>
+    <?php if (!empty($options['cvtx_application_kvs_name'])) { cvtx_application_kv($item, 'magenta'); ?> \smallskip \\ <?php } ?>
+    <?php if (!empty($options['cvtx_application_bvs_name'])) { cvtx_application_bv($item, 'magenta'); ?> \smallskip \\ <?php } ?>
+    <?php if (!empty($options['cvtx_application_topics'])) { cvtx_application_topics_latex($item, 'magenta'); ?> \smallskip \\ <?php } ?>
+    <?php cvtx_application_website($item, 'magenta'); ?>
+    <?php cvtx_application_mail($item, 'magenta'); ?>
+    \noindent\makebox[5cm]{\color{blau}{\rule{5cm}{6pt}}}\\
+    \vspace{20pt}
+    \end{flushleft}\end{small}
+}
+}}
 
-% Application title
 \section*{<?php cvtx_print_latex(__('Application', 'cvtx')); ?> <?php cvtx_titel($item); ?>}
 
 % Add Bookmarks and Reference for Table of Contents
@@ -221,17 +259,12 @@ while ($query->have_posts()) {
 <?php   } ?>
 \addcontentsline{toc}{section}{<?php cvtx_print_latex(__('Application ', 'cvtx')); ?> <?php cvtx_kuerzel($item); ?> <?php cvtx_titel($item); ?>}
 
-\begin{adjustwidth}{}{5cm}
+\InsertBoxR{0}{\somebox<?php echo $i; ?>}[-2] 
 
-% Application text
 <?php cvtx_text($item); ?>
 
-% Biography
 \subsection*{<?php cvtx_print_latex(__('Biography', 'cvtx')); ?>}
 <?php cvtx_application_cv($item); ?>
-
-\end{adjustwidth}
-
 
 <?php
         }
@@ -253,10 +286,13 @@ while ($query->have_posts()) {
 \end{flushright}
 
 % Info Box
-\begin{tabularx}{\textwidth}{|lX|}
-    \hline
+\noindent\makebox[\linewidth]{\rule{\textwidth}{6pt}}
+\noindent
+\begin{tabularx}{\textwidth}{@{}lX}
+\vspace{16pt}\vspace{-15pt}
+\\
                                                             &                                                                     \\
-    \multicolumn{2}{|>{\adjust}X|}{\textbf{\LARGE <?php cvtx_kuerzel($item); ?>}}                                                 \\
+    \multicolumn{2}{>{\adjust}X}{\textbf{\LARGE <?php cvtx_kuerzel($item); ?>}}                                                 \\
                                                             &                                                                     \\
     <?php cvtx_print_latex(__('Author(s)', 'cvtx')); ?>:    &   <?php cvtx_antragsteller_kurz($item); ?>                          \\
                                                             &                                                                     \\
@@ -266,8 +302,8 @@ while ($query->have_posts()) {
     <?php cvtx_print_latex(__('Remarks', 'cvtx')); ?>:      &   <?php cvtx_info($item); ?>                                        \\
                                                             &                                                                     \\
 <?php } ?>
-    \hline
 \end{tabularx}
+\noindent\makebox[\linewidth]{\rule{\textwidth}{6pt}}
 
 % Amendment Title
 \section*{<?php cvtx_print_latex(__('Amendment', 'cvtx')); ?> <?php cvtx_kuerzel($item); ?>}

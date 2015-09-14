@@ -1,0 +1,118 @@
+% This file contains description of \InsertBoxL, \InsertBoxR, \InsertBoxC
+% and \MoveBelowBox macros that are defined in the INSBOX package.
+% Compile it and check this source file to see how that all was done.
+
+\nopagenumbers
+
+\input insbox
+\input epsf
+
+
+% a macro for building a box with a frame around it
+\def\Frame#1{%
+  \vbox{
+    \hrule
+    \hbox{%
+      \vrule
+      \vbox{\vskip 4mm \hbox{\hskip 4mm #1 \hskip 4mm} \vskip 4mm}%
+      \vrule
+      }
+    \hrule
+  }
+}
+
+
+
+% Put an \epsfbox in the right after two lines of text:
+\InsertBoxR{2}{\epsfbox{pic1.eps}}
+Creating documents like this is quite easy. Just four easy macros
+can do all the stuff required to put pictures on the page and
+format all the neighbouring paragraphs so that they do not interfere
+with pictures. The picture you see in the right was inserted using
+the following command put just before the beginning of this paragraph:
+\hfil\break
+{\tt\string\InsertBoxR\char123 2\char125\char123\string\epsfbox\char123
+    pic1.eps\char125\char125}
+
+
+The meaning of the macro's arguments is very easy. The first
+argument should be the number of lines to be typeset ``normally'',
+that is using the whole width of the page. The second argument
+is {\it any\/} box that is to be put on the page beside the text.
+The letter {\tt R} at the end of the macro's name indicates
+that the picture should be put in the right. Of course, there is
+also a macro named {\tt\string\InsertBoxL} which works similarly,
+but puts the picture in the left. Further in this document you will
+find a description of the {\tt\string\InsertBoxC} macro. As you
+probably guessed, it inserts a picture centered in the page.
+
+
+\def\somebox{\vbox{
+  \hsize = 5cm
+  \noindent Some simple text. Some simple text. Some simple text.
+  Some\break simple text. Some simple text.
+  $$ a^2 + b^2 = c^2 $$
+  That was a simple formula. Let's put more text here to make
+  this box bigger... Some simple text. Some simple text.
+}}
+
+% as you see, you can supply the third optional parameter to
+% \InsertBoxL and \InsertBoxR macros; it may help if they
+% calculate the space for the frame incorrectly
+\InsertBoxL{2}{\Frame{\somebox}}[-2]
+I mentioned earlier that almost {\it anything\/} can be inserted
+in the document --- not only {\tt\string\epsfbox}es. You can create
+{\it any\/} box containing graphics, text, math formulas and put it
+beside your text using {\tt\string\InsertBox} macros. The simple
+example in the left should be a good proof.
+
+
+The macros are quite reliable, but you may experience some problems
+if you put displayed math formulas beside pictures. The space reserved
+for the frame may appear too little or too big. But there is an
+easy way to make neccessary correction. Check the source file
+to see how it was done in this particular situation.
+    $$ \sum_{i=1}^{n} i^3 = \left( {n(n+1) \over 2} \right)^2 $$
+Also, I do not guarrantee correct behaviour of these macros in other
+extreme conditions. It is not possible to put two {\tt\string\InsertBox}
+commands before a paragraph --- in that case you should not expect
+a paragraph squeezed between two frames.
+
+
+\def\somebox{\vbox{
+  \epsfxsize=4cm
+  \hbox{\epsfbox{pic2.eps}}
+  \hbox to 4cm{\hss Figure 2.\hss}
+}}
+
+There is also a macro for inserting boxes centered in the page. Its name
+is {\tt\string\InsertBoxC} and it requires only one argument --- the
+box to be inserted. The macro should be called from {\it inside\/}
+a paragraph (not put {\it before\/} a paragraph). The box will be put
+just below the line containing the macro. For example the picture below
+was inserted by putting
+{\tt\string\InsertBoxC\char123 \string\somebox\char125}
+after {\it this\/}\InsertBoxC{\somebox} word. The line was completed,
+the picture was inserted and the paragraph continues below the picture.
+The usage seems very simple and intuitive.
+
+
+\InsertBoxR{0}{\somebox}
+I recommend that you see the source of this document and check how
+changes to arguments of {\tt\string\InsertBox} macros affect paragraphs.
+But before I end, let me give you one more hint. Sometimes you may wish
+to generate a vertical skip like this:
+
+
+\MoveBelowBox
+In such situation you should use the {\tt\string\MoveBelowBox} command.
+It starts the next paragraph just below the current picture.
+
+
+\bigskip
+\noindent
+Micha\l{} Gulczy\'nski \hfil\break
+{\tt mgulcz@we.tuniv.szczecin.pl}
+
+
+\bye

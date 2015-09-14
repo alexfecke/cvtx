@@ -24,7 +24,6 @@ function cvtx_get_latex($out, $strip_nl = false) {
     $tmp = time().'\\textbackslash'.rand();
     $out = str_replace('\\', $tmp, $out);
     // replace thin space
-    error_log(utf8_encode($out));
     $out = utf8_decode(str_replace(array('\xe2\x80\x89', '\u2009', '&#8212;', '&#8201;', '&thinsp;', '&#8239;', '&#x202f;', '&#2009;'),
                        array('\thinspace', '\thinspace', '\thinspace', '\thinspace', '\thinspace', '\thinspace', '\thinspace', '\thinspace'), utf8_encode($out)));
 
@@ -344,50 +343,52 @@ function cvtx_application_file($post) {
     }
 }
 
-function cvtx_application_gender($post) {
+function cvtx_application_gender($post, $color = false) {
     if ($post->post_type == 'cvtx_application') {
         $gender = get_post_meta($post->ID, 'cvtx_application_gender', true);
-        echo('\textbf{'.__('Gender', 'cvtx').':}\newline ');
+        echo(($color ? '\textcolor{'.$color.'}{' : '').'\textbf{'.__('Gender', 'cvtx').':}'.($color ? '}' : '').'\newline ');
         $gender_arr = array(__('female','cvtx'), __('male','cvtx'), __('not specified', 'cvtx'));
         echo(cvtx_get_latex($gender_arr[$gender-1]));
+        echo('\smallskip \\\\');
     }
 }
 
-function cvtx_application_birthdate($post) {
+function cvtx_application_birthdate($post, $color = false) {
     if ($post->post_type == 'cvtx_application') {
         $birthdate = get_post_meta($post->ID, 'cvtx_application_birthdate', true);
-        echo('\textbf{'.__('Date of Birth', 'cvtx').':}\newline ');
+        echo(($color ? '\textcolor{'.$color.'}{' : '').'\textbf{'.__('Date of Birth', 'cvtx').':'.($color ? '}' : '').'}\newline ');
         echo(cvtx_get_latex($birthdate));
+        echo('\smallskip \\\\');
     }
 }
 
-function cvtx_application_kv($post) {
+function cvtx_application_kv($post, $color = false) {
     if($post->post_type == 'cvtx_application') {
         $options = get_option('cvtx_options');
         if (!empty($options['cvtx_application_kvs_name']) && !empty($options['cvtx_application_kvs'])) {
             $kv = get_post_meta($post->ID, 'cvtx_application_kv', true);
             if (!empty($kv)) {
-                echo('\textbf{'.$options['cvtx_application_kvs_name'].':}\newline ');
+                echo(($color ? '\textcolor{'.$color.'}{' : '').'\textbf{'.$options['cvtx_application_kvs_name'].':'.($color ? '}' : '').'}\newline ');
                 echo($options['cvtx_application_kvs'][$kv]);
             }
         }
     }
 }
 
-function cvtx_application_bv($post) {
+function cvtx_application_bv($post, $color = false) {
     if($post->post_type == 'cvtx_application') {
         $options = get_option('cvtx_options');
         if (!empty($options['cvtx_application_bvs_name']) && !empty($options['cvtx_application_bvs'])) {
             $bv = get_post_meta($post->ID, 'cvtx_application_bv', true);
             if (!empty($bv)) {
-                echo('\textbf{'.$options['cvtx_application_bvs_name'].':}\newline ');
+                echo(($color ? '\textcolor{'.$color.'}{' : '').'\textbf{'.$options['cvtx_application_bvs_name'].':'.($color ? '}' : '').'}\newline ');
                 echo($options['cvtx_application_bvs'][$bv]);
             }
         }
     }
 }
 
-function cvtx_application_topics_latex($post) {
+function cvtx_application_topics_latex($post, $color = false) {
     if($post->post_type == 'cvtx_application') {
         $options = get_option('cvtx_options');
         if (!empty($options['cvtx_application_topics'])) {
@@ -397,29 +398,31 @@ function cvtx_application_topics_latex($post) {
                 array_push($topic_arr,trim($options['cvtx_application_topics'][$topic_id]));
             }
             if (!empty($topic_arr)) {
-                echo('\textbf{'.__('Topics','cvtx').':}\newline ');
+                echo(($color ? '\textcolor{'.$color.'}{' : '').'\textbf{'.__('Topics','cvtx').':}'.($color ? '}' : '').'\newline ');
                 echo(implode(', ',$topic_arr));
             }
         }
     }
 }
 
-function cvtx_application_website($post) {
+function cvtx_application_website($post, $color = false) {
     if($post->post_type == 'cvtx_application') {
         $website = get_post_meta($post->ID, 'cvtx_application_website', true);
         if(!empty($website)) {
-            echo('\textbf{'.__('Website','cvtx').':}\newline ');
+            echo(($color ? '\textcolor{'.$color.'}{' : '').'\textbf{'.__('Website','cvtx').':}'.($color ? '}' : '').'\newline ');
             echo('\url{'.$website.'}');
+            echo('\smallskip \\\\');
         }
     }
 }
 
-function cvtx_application_mail($post) {
+function cvtx_application_mail($post, $color = false) {
     if($post->post_type == 'cvtx_application') {
         $mail = get_post_meta($post->ID, 'cvtx_application_mail', true);
         if(!empty($mail) && get_post_meta($post->ID, 'cvtx_application_email_public', true) == 'on') {
-            echo('\textbf{'.__('E-Mail','cvtx').':}\newline ');
+            echo(($color ? '\textcolor{'.$color.'}{' : '').'\textbf{'.__('E-Mail','cvtx').':}'.($color ? '}' : '').'\newline ');
             echo('\href{mailto:'.$mail.'}{'.$mail.'}');
+            echo('\smallskip \\\\');
         }
     }
 }
